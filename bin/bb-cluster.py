@@ -2,6 +2,7 @@
 
 # bb-cluster.py
 # Author: Jared Johnson, jared.johnson@doh.wa.gov
+# Author: Holly Halstead, holly.halstead@doh.wa.gov
 
 version = 1.0
 
@@ -28,6 +29,7 @@ import shutil
 
 # Visualization
 import matplotlib.pyplot as plt
+
 
 # ----- ARGS -----#
 # Initialize the parser
@@ -69,18 +71,23 @@ parser.add_argument(
     "--version", action='version', version=f'{version}',
     help="Show program version and exit."
 )
+
+
 # Parse the arguments
 args = parser.parse_args()
+
 
 #----- START MESSAGE -----#
 start = f"""
 bb-cluster.py v{version}
 
-Written by Jared Johnson
-jared.johnson@doh.wa.gov
+Written by
+(1) Jared Johnson, jared.johnson@doh.wa.gov
+(2) Holly Halstead, holly.halstead@doh.wa.gov
 
 """
 print(start)
+
 
 #----- FUNCTIONS -----#
 def table2term(data, header):
@@ -95,7 +102,7 @@ def table2term(data, header):
     - Prints result to terminal
     """
     padded_list = []
-    
+
     # Determine the length of the longest element across all sublists
     max_col_len = max([len(str(item)) for sublist in data for item in sublist]) + 2
     for sublist in data:
@@ -110,6 +117,7 @@ def table2term(data, header):
         header_pad = int(round((max_row_len - len(header)) / 2, 0))
     output = f"\n{'-' * max_row_len}\n{' ' * header_pad}{header}\n{'-' * max_row_len}\n{padded_result}\n{'-' * max_row_len}\n"
     print(output, flush=True)
+
 
 def dictToCsv(dicts, filename, cols):
     """
@@ -140,7 +148,7 @@ def computeDistance(pair, data):
 
     Parameters:
     - pair (tuple): A tuple containing the IDs of two items (id1, id2).
-    - data (dict): A dictionary where each ID maps to metadata, 
+    - data (dict): A dictionary where each ID maps to metadata,
                    including a 'mh' object with an avg_containment method.
 
     Returns:
@@ -186,8 +194,8 @@ def computeMatrix(data):
 
     # Write pairwise comparisons to CSV file
     dictToCsv(
-        dist_long, 
-        os.path.join(args.outdir, 'dist.new.csv'), 
+        dist_long,
+        os.path.join(args.outdir, 'dist.new.csv'),
         ["id1", "id2", "dist"]
     )
 
@@ -349,14 +357,15 @@ def selectReps(minhash, clusters):
 
     return reps
 
+
 def assignClusters(reps, new, threshold):
     """
     Assign clusters to new items based on existing cluster representatives.
 
     Parameters:
-    - reps (dict): A dictionary of existing cluster representatives. 
+    - reps (dict): A dictionary of existing cluster representatives.
                    Keys are cluster IDs, values are metadata including 'mh' objects.
-    - new (dict): A dictionary of new items to be clustered. 
+    - new (dict): A dictionary of new items to be clustered.
                   Keys are item IDs, values are metadata including 'mh' objects.
     - threshold (float): The distance threshold for assigning items to clusters.
 
@@ -417,8 +426,8 @@ def summarize(data, clusters):
         })
 
     dictToCsv(
-        dist_long, 
-        os.path.join(args.outdir, 'dist.all.csv'), 
+        dist_long,
+        os.path.join(args.outdir, 'dist.all.csv'),
         ["id1", "id2", "dist", "cluster1", "cluster2"]
     )
 
@@ -460,8 +469,8 @@ def summarize(data, clusters):
         summary_lines.append(list(map(str, subsummary)))
 
     dictToCsv(
-        fullSmry, 
-        os.path.join(args.outdir, 'summary.full.csv'), 
+        fullSmry,
+        os.path.join(args.outdir, 'summary.full.csv'),
         ["cluster1", "cluster2", "min", "max", "mean"]
     )
 
@@ -480,113 +489,131 @@ def summarize(data, clusters):
         embedded_coordinates = mds.fit_transform(mat)
         x, y = embedded_coordinates[:, 0], embedded_coordinates[:, 1]
 
-        labels = [str(c) for c in clusts]
-        for cluster, label in zip(clusts, labels):
-            indices = [i for i, clust in enumerate(clusts) if clust == cluster]
-            plt.scatter([x[i] for i in indices], [y[i] for i in indices], label=label)
-        
+        labels = [str(c) for c in clusters.values()]
+
+        # Separate the data into groups by cluster number (called categories here)
+        categories = {}
+        for i in range(len(labels)):
+            label = labels[i]
+            if label not in categories:
+                categories[label] = {"x": [], "y": []}
+            categories[label]["x"].append(x[i])
+            categories[label]["y"].append(y[i])
+
+        # Colormap
+        cmap = plt.get_cmap('tab20')
+
+        # Plot the data
+        for label, points in categories.items():
+            color = cmap(int(label) / len(categories))  # Normalize label to 0-1 range and cycle through colormap
+            plt.scatter(points["x"], points["y"], color=color,label=f"Cluster {label}")
+
         plt.title("MDS Projection")
         plt.xlabel("Dimension 1")
         plt.ylabel("Dimension 2")
-        plt.legend()
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=3)
         plt.savefig(os.path.join(args.outdir, 'MDS.jpg'), dpi=300, bbox_inches='tight')
+        plt.close()
+
     except Exception as e:
         print(f"MDS not made: {e}", flush=True)
 
+
 #----- MAIN -----#
-# Configuration and setup
-## Create output directory, if needed
-if not os.path.exists(args.outdir):
-    os.makedirs(args.outdir)
+if __name__ == "__main__":
+    # Configuration and setup
+    ## Create output directory, if needed
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir)
 
-## Validate input: Signatures and clusters must be supplied together
-if (args.clusters and not args.sigs) or (args.sigs and not args.clusters):
-    sys.exit("ERROR: Cluster information and signatures must be supplied together.")
+    ## Validate input: Signatures and clusters must be supplied together
+    if (args.clusters and not args.sigs) or (args.sigs and not args.clusters):
+        sys.exit("ERROR: Cluster information and signatures must be supplied together.")
 
-# Create signature directory
-sig_dir = os.path.join(args.outdir, 'sig/')
-if not os.path.exists(sig_dir):
-    os.makedirs(sig_dir)
+    # Create signature directory
+    sig_dir = os.path.join(args.outdir, 'sig/')
+    if not os.path.exists(sig_dir):
+        os.makedirs(sig_dir)
 
-# Generate MinHash signatures for query genomes
-mh_query = {}
-for genome in args.query:
-    name = os.path.splitext(os.path.basename(genome))[0]
-    mh = sourmash.MinHash(n=0, ksize=args.ksize, scaled=1000)
-    for record in screed.open(genome):
-        mh.add_sequence(record.sequence, True)
-    sig = SourmashSignature(mh, name=name)
-    with open(os.path.join(sig_dir, f'{name}.sig'), 'wt') as fp:
-        save_signatures([sig], fp)
-    mh_query[name] = {'mh': mh}
+    # Generate MinHash signatures for query genomes
+    mh_query = {}
+    for genome in args.query:
+        name = os.path.splitext(os.path.basename(genome))[0]
+        mh = sourmash.MinHash(n=0, ksize=args.ksize, scaled=1000)
+        for record in screed.open(genome):
+            mh.add_sequence(record.sequence, True)
+        sig = SourmashSignature(mh, name=name)
+        with open(os.path.join(sig_dir, f'{name}.sig'), 'wt') as fp:
+            save_signatures([sig], fp)
+        mh_query[name] = {'mh': mh}
 
-print(f'{datetime.datetime.now()}: Sketched {len(mh_query)} query sequences.', flush=True)
+    print(f'{datetime.datetime.now()}: Sketched {len(mh_query)} query sequences.', flush=True)
 
-# Handle existing clusters and signatures
-if args.clusters and args.sigs:
-    # Load cluster data
-    old_clusters = {}
-    with open(args.clusters, mode='r') as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip header
-        for row in reader:
-            old_clusters[row[0]] = row[1]
+    # Handle existing clusters and signatures
+    if args.clusters and args.sigs:
+        # Load cluster data
+        old_clusters = {}
+        with open(args.clusters, mode='r') as file:
+            reader = csv.reader(file)
+            next(reader)  # Skip header
+            for row in reader:
+                old_clusters[row[0]] = row[1]
 
-    # Load existing signatures
-    mh_sig = {}
-    for sig in args.sigs:
-        sig_name = os.path.splitext(os.path.basename(sig))[0]
-        if sig_name in old_clusters:
-            mh = load_one_signature(sig)
-            mh_sig[sig_name] = {'mh': mh.minhash}
-            if not args.no_update:
-                shutil.copy(sig, os.path.join(sig_dir, os.path.basename(sig)))
-        else:
-            print(f"{sig_name} not found in supplied clusters - it will be skipped!", flush=True)
+        # Load existing signatures
+        mh_sig = {}
+        for sig in args.sigs:
+            sig_name = os.path.splitext(os.path.basename(sig))[0]
+            if sig_name in old_clusters:
+                mh = load_one_signature(sig)
+                mh_sig[sig_name] = {'mh': mh.minhash}
+                if not args.no_update:
+                    shutil.copy(sig, os.path.join(sig_dir, os.path.basename(sig)))
+            else:
+                print(f"{sig_name} not found in supplied clusters - it will be skipped!", flush=True)
 
-    # Verify at least one valid signature exists
-    if not mh_sig:
-        sys.exit("ERROR: Signature sample names do not match cluster sample names!")
+        # Verify at least one valid signature exists
+        if not mh_sig:
+            sys.exit("ERROR: Signature sample names do not match cluster sample names!")
 
-    # Assign new isolates to existing clusters
-    print(f'{datetime.datetime.now()}: Assigning new isolates to existing clusters.', flush=True)
-    mh_reps = selectReps(mh_sig, old_clusters)
-    assigned_clusters, remainder = assignClusters(mh_reps, mh_query, args.dist)
-    print(f'{datetime.datetime.now()}: {len(assigned_clusters)} isolates assigned.', flush=True)
+        # Assign new isolates to existing clusters
+        print(f'{datetime.datetime.now()}: Assigning new isolates to existing clusters.', flush=True)
+        mh_reps = selectReps(mh_sig, old_clusters)
+        assigned_clusters, remainder = assignClusters(mh_reps, mh_query, args.dist)
+        print(f'{datetime.datetime.now()}: {len(assigned_clusters)} isolates assigned.', flush=True)
 
-    # Handle remaining unassigned isolates
-    mh_rem = {s: mh_query[s] for s in remainder}
-    max_cluster = max(mh_reps.keys()) if mh_rem else 0
-else:
-    mh_rem = mh_query
-    mh_sig = {}
-    old_clusters = {}
-    assigned_clusters = {}
-    max_cluster = 0
+        # Handle remaining unassigned isolates
+        mh_rem = {s: mh_query[s] for s in remainder}
+        max_cluster = max(mh_reps.keys()) if mh_rem else 0
+    else:
+        mh_rem = mh_query
+        mh_sig = {}
+        old_clusters = {}
+        assigned_clusters = {}
+        max_cluster = 0
 
-# Create new clusters for unassigned isolates
-if mh_rem:
-    print(f'{datetime.datetime.now()}: Creating new clusters.', flush=True)
-    new_clusters, new_max_cluster, dist_long = createClusters(mh_rem, args.dist, max_cluster, 'new_clusters')
-    print(f'{datetime.datetime.now()}: {int(new_max_cluster) - int(max_cluster)} clusters created.', flush=True)
-else:
-    new_clusters = {}
-    new_max_cluster = max_cluster
+    # Create new clusters for unassigned isolates
+    if mh_rem:
+        print(f'{datetime.datetime.now()}: Creating new clusters.', flush=True)
+        new_clusters, new_max_cluster, dist_long = createClusters(mh_rem, args.dist, max_cluster, 'new_clusters')
+        print(f'{datetime.datetime.now()}: {int(new_max_cluster) - int(max_cluster)} clusters created.', flush=True)
+    else:
+        new_clusters = {}
+        new_max_cluster = max_cluster
 
-# Combine all clusters
-clusters = {**old_clusters, **assigned_clusters, **new_clusters}
+    # Combine all clusters
+    clusters = {**old_clusters, **assigned_clusters, **new_clusters}
 
-# Save cluster assignments to a file
-with open(os.path.join(args.outdir, 'clusters.csv'), mode='w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(["name", "cluster"])
-    for key, value in clusters.items():
-        writer.writerow([key, value])
+    # Save cluster assignments to a file
+    with open(os.path.join(args.outdir, 'clusters.csv'), mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["name", "cluster"])
+        for key, value in clusters.items():
+            writer.writerow([key, value])
 
-# Create run summary, if requested
-if args.summarize:
-    print(f'{datetime.datetime.now()}: Creating run summary.', flush=True)
-    summarize({**mh_query, **mh_sig}, clusters)
+    # Create run summary, if requested
+    if args.summarize:
+        print(f'{datetime.datetime.now()}: Creating run summary.', flush=True)
+        summarize({**mh_query, **mh_sig}, clusters)
 
-# Print completion message
-print(f"\nResults saved to {args.outdir}", flush=True)
+    # Print completion message
+    print(f"\nResults saved to {args.outdir}", flush=True)
