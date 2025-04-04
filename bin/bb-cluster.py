@@ -2,6 +2,7 @@
 
 # bb-cluster.py
 # Author: Jared Johnson, jared.johnson@doh.wa.gov
+# Author: Holly Halstead, holly.halstead@doh.wa.gov
 
 version = 1.0
 
@@ -95,7 +96,7 @@ def table2term(data, header):
     - Prints result to terminal
     """
     padded_list = []
-    
+
     # Determine the length of the longest element across all sublists
     max_col_len = max([len(str(item)) for sublist in data for item in sublist]) + 2
     for sublist in data:
@@ -140,7 +141,7 @@ def computeDistance(pair, data):
 
     Parameters:
     - pair (tuple): A tuple containing the IDs of two items (id1, id2).
-    - data (dict): A dictionary where each ID maps to metadata, 
+    - data (dict): A dictionary where each ID maps to metadata,
                    including a 'mh' object with an avg_containment method.
 
     Returns:
@@ -186,8 +187,8 @@ def computeMatrix(data):
 
     # Write pairwise comparisons to CSV file
     dictToCsv(
-        dist_long, 
-        os.path.join(args.outdir, 'dist.new.csv'), 
+        dist_long,
+        os.path.join(args.outdir, 'dist.new.csv'),
         ["id1", "id2", "dist"]
     )
 
@@ -354,9 +355,9 @@ def assignClusters(reps, new, threshold):
     Assign clusters to new items based on existing cluster representatives.
 
     Parameters:
-    - reps (dict): A dictionary of existing cluster representatives. 
+    - reps (dict): A dictionary of existing cluster representatives.
                    Keys are cluster IDs, values are metadata including 'mh' objects.
-    - new (dict): A dictionary of new items to be clustered. 
+    - new (dict): A dictionary of new items to be clustered.
                   Keys are item IDs, values are metadata including 'mh' objects.
     - threshold (float): The distance threshold for assigning items to clusters.
 
@@ -417,8 +418,8 @@ def summarize(data, clusters):
         })
 
     dictToCsv(
-        dist_long, 
-        os.path.join(args.outdir, 'dist.all.csv'), 
+        dist_long,
+        os.path.join(args.outdir, 'dist.all.csv'),
         ["id1", "id2", "dist", "cluster1", "cluster2"]
     )
 
@@ -460,8 +461,8 @@ def summarize(data, clusters):
         summary_lines.append(list(map(str, subsummary)))
 
     dictToCsv(
-        fullSmry, 
-        os.path.join(args.outdir, 'summary.full.csv'), 
+        fullSmry,
+        os.path.join(args.outdir, 'summary.full.csv'),
         ["cluster1", "cluster2", "min", "max", "mean"]
     )
 
@@ -480,16 +481,31 @@ def summarize(data, clusters):
         embedded_coordinates = mds.fit_transform(mat)
         x, y = embedded_coordinates[:, 0], embedded_coordinates[:, 1]
 
-        labels = [str(c) for c in clusts]
-        for cluster, label in zip(clusts, labels):
-            indices = [i for i, clust in enumerate(clusts) if clust == cluster]
-            plt.scatter([x[i] for i in indices], [y[i] for i in indices], label=label)
-        
+        labels = [str(c) for c in clusters.values()]
+
+        # Separate the data into groups by category
+        categories = {}
+        for i in range(len(labels)):
+            label = labels[i]
+            if label not in categories:
+                categories[label] = {"x": [], "y": []}
+            categories[label]["x"].append(x[i])
+            categories[label]["y"].append(y[i])
+
+        # # Colormap
+        cmap = plt.get_cmap('tab20')
+
+        # Plot the data
+        for label, points in categories.items():
+            color = cmap(int(label) / len(categories))  # Normalize label to 0-1 range
+            plt.scatter(points["x"], points["y"], color=color,label=f"Cluster {label}")
+
         plt.title("MDS Projection")
         plt.xlabel("Dimension 1")
         plt.ylabel("Dimension 2")
-        plt.legend()
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=3)
         plt.savefig(os.path.join(args.outdir, 'MDS.jpg'), dpi=300, bbox_inches='tight')
+
     except Exception as e:
         print(f"MDS not made: {e}", flush=True)
 

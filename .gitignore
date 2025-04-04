@@ -6,3 +6,7 @@ results/
 testing/
 testing*
 *.pyc
+/bin/Acinetobacter_baumannii
+/bin/Shigella_flexneri
+/bin/Shigella_sonnei
+bin/bb-cluster-old.py
