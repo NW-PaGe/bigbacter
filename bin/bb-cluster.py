@@ -77,8 +77,9 @@ args = parser.parse_args()
 start = f"""
 bb-cluster.py v{version}
 
-Written by Jared Johnson
-jared.johnson@doh.wa.gov
+Written by
+(1) Jared Johnson, jared.johnson@doh.wa.gov
+(2) Holly Halstead, holly.halstead@doh.wa.gov
 
 """
 print(start)
@@ -497,7 +498,7 @@ def summarize(data, clusters):
 
         # Plot the data
         for label, points in categories.items():
-            color = cmap(int(label) / len(categories))  # Normalize label to 0-1 range
+            color = cmap(int(label) / len(categories))  # Normalize label to 0-1 range and cycle through colormap
             plt.scatter(points["x"], points["y"], color=color,label=f"Cluster {label}")
 
         plt.title("MDS Projection")
@@ -505,6 +506,7 @@ def summarize(data, clusters):
         plt.ylabel("Dimension 2")
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=3)
         plt.savefig(os.path.join(args.outdir, 'MDS.jpg'), dpi=300, bbox_inches='tight')
+        plt.close()
 
     except Exception as e:
         print(f"MDS not made: {e}", flush=True)
