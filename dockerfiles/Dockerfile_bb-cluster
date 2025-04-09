@@ -1,0 +1,25 @@
+# base image
+FROM ubuntu:jammy
+
+# metadata
+LABEL base.image="ubuntu/python:3.12-24.04"
+LABEL dockerfile.version="2"
+LABEL software="bb-cluster"
+LABEL software.version="v1.0.0"
+LABEL description="BigBacter clustering method"
+LABEL website="https://github.com/DOH-JDJ0303/bigbacter-nf/bin/bb-cluster.py"
+LABEL license="Apache 2.0"
+LABEL maintainer="Jared Johnson"
+LABEL maintainer.email="jared.johnson@doh.wa.gov"
+
+# prevents having to enter commands during apt-get install
+ENV DEBIAN_FRONTEND=noninteractive
+
+# install dependencies
+RUN apt-get update && \
+    apt-get -y --no-install-recommends install \
+    python3-pip
+
+RUN pip install sourmash
+RUN pip install scikit-learn
+RUN pip install biopython
