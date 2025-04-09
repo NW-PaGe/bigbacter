@@ -3,51 +3,10 @@
 //
 
 // Modules
-include { POPPUNK_ASSIGN          } from '../../modules/local/poppunk-assign'
-include { POPPUNK_VISUAL          } from '../../modules/local/poppunk-visualize'
-include { RESOLVE_MERGED_CLUSTERS } from '../../modules/local/resolve-merged-clusters'
-
-/*
-=============================================================================================================================
-    SUBWORKFLOW FUNCTIONS
-=============================================================================================================================
-*/
-// Function for determining the most recent PopPUNK database
-def get_ppdb ( taxa ) {
-    // determine path to taxa database
-    taxa_path = file(params.db).resolve(taxa)
-    // check that a bigbacter database exists for the taxa
-    if(!taxa_path.exists()) {
-        exit 1, "ERROR: No BigBacter database exists for ${taxa} at the provided path: ${params.db}"
-    }
-    // get most recent PopPunk database
-    pp_db = taxa_path.resolve("pp_db")
-    pp_db = pp_db.resolve(pp_db.list().sort().last())
-        
-    return pp_db
-}
-
-// get list of isolates in each cluster for a taxa
-def db_taxa_clusters ( taxa , timestamp ) {
-    // determine path to taxa database
-    clusters_path = file(params.db).resolve(taxa).resolve("clusters")
-    // get list of isolates associated with each cluster
-    taxadir = file(params.outdir).resolve(timestamp.toString()).resolve(taxa)
-    taxadir.mkdirs()
-    db_info_file = taxadir.resolve(taxa+"-db-info.txt")
-    db_info_file.delete()
-    clusters = clusters_path.list()
-    for ( cluster in clusters ) {
-        // list isolates
-        isolates = clusters_path.resolve(cluster).resolve("snippy").list()
-        // create list
-        for ( iso in isolates ) {
-            row = taxa+"\t"+cluster+"\t"+iso.replace(".tar.gz", "")+"\n"
-            db_info_file.append(row) 
-        }
-    }
-    return db_info_file
-}
+include { BB_CLUSTER     } from '../../modules/local/bb-cluster'
+include { POPPUNK_ASSIGN } from '../../modules/local/poppunk-assign'
+include { POPPUNK_VISUAL } from '../../modules/local/poppunk-visualize'
+include { RESOLVE_MERGED } from '../../modules/local/resolve-merged-clusters'
 
 /*
 =============================================================================================================================
@@ -56,147 +15,194 @@ def db_taxa_clusters ( taxa , timestamp ) {
 */
 workflow CLUSTER {
     take:
-    manifest   // channel: [ val(sample), val(taxa), file(assembly) ]
-    timestamp  // channel: val(timestamp)
+    ch_man        // channel: [ val(sample), val(taxa), file(assembly) ]
+    ch_timestamp  // channel: val(timestamp)
 
     main:
     ch_versions = Channel.empty()
     /*
     =============================================================================================================================
         ASSIGN CLUSTERS
+        - Determine if a database exists for each species (PopPUNK or bb-cluster; default: bb-cluster)
+        - Return most recent database version (if a database exists)
+        - Assign clusters with selected database & method
     =============================================================================================================================
     */
-    // Determine the most recent PopPUNK database for each species and then group by species
-    manifest
-        .map{ sample, taxa, assembly -> [ taxa, sample, assembly ] }
-        .groupTuple(by: 0)
-        .map {taxa, sample, assembly -> [taxa, sample, assembly, get_ppdb(taxa)]}
-        .set { pp_grouped }
+    // Fetch current database info
+    ch_man
+        .groupTuple( by: 1 )
+        .combine( ch_timestamp )
+        .map{ sample, taxa, assembly, timestamp -> [ taxa: taxa, sample: sample, assembly: assembly ] + getLastDb( taxa, timestamp ) }
+        .branch{ it ->
+            pp: it.db_type == 'pp_db'
+            bb: it.db_type == 'bb_db'
+        }
+        .set { ch_db }
 
-    // Make sure current run is not superceded by run in BigBacter database - this should avoid issues with resuming an old run.
-    pp_grouped
-        .combine(timestamp)
-        .map{ taxa, sample, assembly, pp_db, timestamp -> [ taxa, file(pp_db).getBaseName().replace('.tar', ''), timestamp ] }
-        .map{ taxa, current_db, timestamp -> current_db > timestamp ? error(message = "Error: The timestamp of the current run ("+timestamp+") is older than the timestamp of the most recent run ("+current_db+") in your "+taxa.replace('_',' ')+" database. This has likely occured because you are trying to resume an old BigBacter run. Try running this command again without the '-resume' parameter.") : "Nothing to see here!"}
-
-    // MODULE: Assign PopPUNK clusters
+    /*
+    ====================
+        PopPUNK
+    ====================
+    */
+    // MODULE: Assign clusters with PopPUNK
     POPPUNK_ASSIGN (
-        pp_grouped,
-        timestamp
+        ch_db.pp.map{ [ it.taxa, it.sample, it.assembly, it.db_file ] },
+        ch_timestamp
     )
     ch_versions = ch_versions.mix(POPPUNK_ASSIGN.out.versions)
 
     // MODULE: Create visuals for new PopPUNK database
     POPPUNK_VISUAL(
-        POPPUNK_ASSIGN.out.new_pp_db,
-        timestamp
+        POPPUNK_ASSIGN.out.db,
+        ch_timestamp
     )
     ch_versions = ch_versions.mix(POPPUNK_VISUAL.out.versions)
+
+    /*
+    ====================
+        bb-cluster
+    ====================
+    */
+    // MODULE: Assign clusters with bb-cluster
+    BB_CLUSTER (
+        ch_db.bb.map{ [ it.taxa, it.assembly, it.db_file ] },
+        ch_timestamp
+    )
+    ch_versions = ch_versions.mix(BB_CLUSTER.out.versions)
 
     // Load cluster results
     POPPUNK_ASSIGN
         .out
         .cluster_results
-        .splitCsv(header: true, elem: 1)
+        .concat( BB_CLUSTER.out.clusters )
+        .splitCsv( header: true, elem: 1 )
         .transpose()
-        .map{ taxa, results -> [ results.Taxon, taxa, results.Cluster ] }
-        .join(manifest.map { sample, taxa, assembly  -> [ sample, taxa ]}, by: [0,1])
-        .map{ sample, taxa, cluster -> [ sample, cluster, taxa ] }
-        .set {cluster_results}
+        .map{ taxa, data -> [ taxa, 
+                              data.containsKey('name') ? data['name'].tokenize('.')[0] : data['Taxon'], 
+                              data.containsKey('cluster') ? data['cluster'] : data['Cluster'] ] }
+        .join( ch_man.map { sample, taxa, assembly  -> [ taxa, sample ] }, by: [0,1] )
+        .map{ taxa, sample, cluster -> [ taxa: taxa, sample: sample, cluster: cluster ] }
+        .set{ ch_clusters }
+
+    // Create channnel for new database files
+    BB_CLUSTER
+        .out
+        .db
+        .map{ taxa, db -> [ taxa, db, 'bb_db' ] }
+        .concat(POPPUNK_ASSIGN.out.db.map{ taxa, db -> [ taxa, db, 'pp_db' ] })
+        .set{ ch_new_db }
+
+    // Create channel for pairwise distances used for clustering
+    BB_CLUSTER
+        .out
+        .dist
+        .concat( POPPUNK_ASSIGN.out.core_acc_dist )
+        .set{ ch_dist }
     
     /*
     =============================================================================================================================
         RESOLVE MERGED CLUSTERS
+        - Only applies to PopPUNK (all samples still passed through)
+        - Merged clusters are denoted by an underscore ('_') in the cluster name
     =============================================================================================================================
     */
+    // MODULE: Resolve merged clusters
+    RESOLVE_MERGED (
+        ch_clusters
+            .filter{ it.cluster.contains('_') }
+            .map{ [ it.taxa, it.sample ] }
+            .combine( POPPUNK_ASSIGN.out.jaccard_dist, by: 0 )
+    )
 
-    // If resolve_merged is 'true'
-    if ( params.resolve_merged ) {
-        // get list of isolates that belong to each cluster in the BiBacter database
-        manifest
-            .map{ sample, taxa, assembly -> taxa }
-            .combine(timestamp)
-            .distinct()
-            .map{ taxa, timestamp -> [ taxa, db_taxa_clusters(taxa, timestamp) ] }
-            .set{ db_taxa_clusters }
-        
-        // load merged clusters & determine if each unmerged cluster exists in the BigBacter database
-        POPPUNK_ASSIGN
-            .out
-            .merged_clusters
-            .map { taxa, results -> results }
-            .splitCsv(header: true)
-            .map { it -> [ it.taxa, it.merged_cluster, it.cluster, file(params.db).resolve(it.taxa).resolve("clusters").resolve(it.cluster.padLeft(5, "0")).exists() ? true : false ] }
-            .set{ merged_clusters }
-        
-        // make sure that this merge didn't occur on two or more unmerged clusters that have not been observed yet by BigBacter
-        merged_clusters
-            .map { taxa, merged_cluster, cluster, bb_status -> [ taxa, merged_cluster, cluster, bb_status ? 1 : 0 ] }
-            .groupTuple(by: [0,1])
-            .map { taxa, merged_cluster, clusters, bb_status -> [ taxa, merged_cluster, bb_status.sum() == 0 ] }
-            .combine(merged_clusters, by: [0,1])
-            .set { merged_clusters }
-
-        // split out any merges that did occur on clusters that have not been observed and arbitrarily select an unmerged cluster
-        merged_clusters
-            .filter { taxa, merged_cluster, pp_status, cluster, bb_status -> pp_status }
-            .groupTuple(by: [0,1])
-            .map { taxa, merged_cluster, pp_status, unmerged_clusters, bb_status -> [ taxa, merged_cluster, unmerged_clusters.get(0) ] }
-            .combine(cluster_results.map { sample, cluster, taxa -> [ taxa, cluster, sample ] }, by: [0,1])
-            .map { taxa, merged_cluster, unmerged_cluster, sample -> [ sample, taxa, unmerged_cluster ] }
-            .set { fresh_merges }
-
-        // split out the remaining merges and join with the BigBacter database info and Jaccard distance for that taxa
-        merged_clusters
-            .filter { taxa, merged_cluster, pp_status, unmerged_cluster, bb_status -> ! pp_status && bb_status }
-            .map { taxa, merged_cluster, pp_status, unmerged_cluster, bb_status -> [ taxa, merged_cluster ] }
-            .distinct()
-            .combine(db_taxa_clusters, by: 0)
-            .combine(POPPUNK_ASSIGN.out.jaccard_dist, by: 0)
-            .combine(cluster_results.map { sample, merged_cluster, taxa -> [ taxa, merged_cluster, sample ] }, by: [0, 1])
-            .set {stale_merges } // [ taxa, merged_cluster, db_info, dist ]
-
-        // MODULE: Resolve merged clusters
-        RESOLVE_MERGED_CLUSTERS (
-            stale_merges
-        )
-
-        // Combine resolved cluster channels 
-        cluster_results
-            .map { sample, cluster, taxa -> [ sample, taxa, cluster, cluster.contains("_") ] }
-            .filter { sample, taxa, cluster, merge_status -> ! merge_status }
-            .map { sample, taxa, cluster, merge_status -> [ sample, taxa, cluster ] }
-            .concat(RESOLVE_MERGED_CLUSTERS.out.best_cluster.splitCsv(header: false))
-            .concat(fresh_merges)
-            .set { cluster_results }
-
-    }
-    // if resolve_merged is 'false'
-    if ( ! params.resolve_merged ) {
-        // load merged clusters and print warning message for each
-        POPPUNK_ASSIGN
-            .out
-            .merged_clusters
-            .map {taxa, results -> [ results ]}
-            .splitCsv(header: true)
-            .map { tuple(it.taxa.get(0), it.merged_cluster.get(0)) }
-            .distinct()
-            .map { taxa, merged_cluster -> println( "\nWARNING: You have selected not to resolve " + taxa + " cluster "+ merged_cluster +". \nThis can lead to missed genetic relationships. See https://github.com/DOH-JDJ0303/bigbacter-nf for more information.\n") }
-    }
+    RESOLVE_MERGED
+        .out
+        .neighbor
+        .map{ taxa, sample, neighbor -> [ taxa, neighbor ] }
+        .distinct()
+        .groupTuple(by: 0)
+        .map{ resolveMerged( it ) }
+        .combine( RESOLVE_MERGED.out.neighbor.map{ taxa, sample, neighbor -> [ taxa, neighbor, sample ] }, by: [0,1] )
+        .map{ taxa, neighbor, cluster, sample -> [ taxa, sample, cluster ] }
+        .set{ ch_resolved }
+    ch_clusters
+        .map{ [ it.taxa, it.sample, it ] }
+        .join( ch_resolved, by: [0,1], remainder: true)
+        .map{ taxa, sample, data, resolved -> data.cluster = resolved? resolved : data.cluster
+                                              data }
+        .set{ ch_clusters }
 
     /*
     =============================================================================================================================
         FORMAT CLUSTERS
     =============================================================================================================================
     */
-    // Add padding to cluster numbers and determine if they are new or old
-    cluster_results
-        .map { sample, taxa, cluster -> [sample, cluster.padLeft(5, "0") ]}
-        .set { sample_clusters }
+    // Add padding to cluster numbers
+    ch_clusters
+        .map{ it.cluster = it.cluster.padLeft(5, "0")
+              it }
+        .set{ ch_clusters }
 
     emit:
-    sample_clusters = sample_clusters                  // channel: [ val(sample), val(cluster) ]
-    new_pp_db       = POPPUNK_ASSIGN.out.new_pp_db     // channel: [ val(taxa), path(new_pp_db)]
-    core_acc_dist   = POPPUNK_ASSIGN.out.core_acc_dist // channel: [ val(taxa), path(dist) ]
-    versions        = ch_versions                      // channel: [ versions.yml ]
+    clusters = ch_clusters // channel: [ val(sample), val(cluster) ]
+    new_db   = ch_new_db   // channel: [ val(taxa), path(new_pp_db)]
+    dist     = ch_dist     // channel: [ val(taxa), path(dist) ]
+    versions = ch_versions // channel: [ versions.yml ]
+}
+
+/*
+=============================================================================================================================
+    FUNCTIONS
+=============================================================================================================================
+*/
+// Function for determining the most recent database
+def getLastDb ( taxa, timestamp ) {
+    def taxon_path = file(params.db, checkIfExists: false).resolve(taxa)
+    def db_opts = ['pp_db', 'bb_db']
+    def db_new  = true
+    def db_type = 'bb_db'
+
+    if( taxon_path.exists() ){
+        db_type = taxon_path.list().findAll{ it in db_opts }
+        if( db_type.size() > 1 ){
+            msg = """
+            Databases can only use one clustering method. Please remove one of the following directories to proceed:
+
+            ${ db_type.collect{ taxon_path.resolve( it ) }.join('\n') }
+
+            """
+            exit 1, msg
+        }
+
+        db_path   = taxon_path.resolve( db_type[0] )
+        db_files  = db_path.list()
+        db_new    = db_files.size() == 0 ? true : false
+
+    }
+    db_type   = db_new ? 'bb_db' : db_type[0]
+    db_path   = taxon_path.resolve( db_type )
+    last_file = db_new ? [] : db_path.resolve( db_files.sort().last() )
+        
+    return [ db_type: db_type, db_path: db_path, db_file: last_file ]
+}
+
+// Function for resolving merged PopPUNK clusters
+def resolveMerged( data ){
+    def taxa      = data[0]
+    def neighbors = data[1]
+    def result = file(params.db)
+        .resolve(taxa)
+        .resolve('clusters')
+        .list()
+        .collectMany{ c -> 
+            file( params.db )
+                .resolve( taxa )
+                .resolve( 'clusters' )
+                .resolve( c )
+                .resolve('snippy')
+                .list()
+                .findAll{ f -> 
+                    f.replaceAll('.tar.gz', '').contains( neighbors ) 
+                }.collect{ f -> [ taxa, f.replaceAll('.tar.gz', ''), c ] }
+        }
+    return result
 }

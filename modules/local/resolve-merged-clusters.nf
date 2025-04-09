@@ -1,20 +1,29 @@
 
-process RESOLVE_MERGED_CLUSTERS {
+process RESOLVE_MERGED {
     tag "${sample}"
     label 'process_low'
     stageInMode 'copy'
 
     input:
-    tuple val(taxa), val(merged_cluster), path(db_info), path(dist), val(sample)
+    tuple val(taxa), val(sample), path(dist)
 
     output:
-    path "best_cluster.csv", emit: best_cluster
+    tuple val(taxa), val(sample), env(NEIGHBOR), emit: neighbor
 
     when:
     task.ext.when == null || task.ext.when
 
-    shell:
-    '''
-    resolve-merged.sh !{sample} !{taxa} !{dist} !{db_info}
-    '''
+    script:
+    """
+    zcat ${dist} \\
+        | awk -v OFS='\t' -v sample=${sample} '! (\$1 == sample && \$2 == sample) && (\$1 == sample | \$2 == sample) {print \$1, \$2, \$5}' \\
+        | sort -rgk 2 \\
+        | sed -n 1p \\
+        | cut -f 1,2 \\
+        | tr '\t' '\n' \\
+        | grep -v ${sample} \\
+        | sort \\
+        | uniq \\
+        | read NEIGHBOR
+    """
 }

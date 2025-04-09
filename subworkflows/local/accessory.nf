@@ -33,8 +33,7 @@ workflow ACCESSORY {
         .set { full_dist }
     // MODULE: Subset and format dist file using Snippy tree and Bash
     FORMAT_DIST (
-        full_dist,
-        "1,2,4"
+        full_dist
     )
     
     /* 
@@ -44,7 +43,7 @@ workflow ACCESSORY {
     */ 
     // MODULE: Distance matrix figure
     DIST_MAT (
-        FORMAT_DIST.out.dist.map{ taxa, cluster, dist, tree -> [ taxa, cluster, "poppunk", dist, tree ] }.combine(manifest_file),
+        FORMAT_DIST.out.dist.map{ taxa, cluster, dist, tree -> [ taxa, cluster, dist.baseName.endsWith('.csv') ? 'bb-cluster' : "poppunk", dist, tree ] }.combine(manifest_file),
         "long",
         "Accessory",
         100,

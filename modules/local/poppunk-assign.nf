@@ -8,10 +8,9 @@ process POPPUNK_ASSIGN {
 
     output:
     tuple val(taxa), path('clusters.csv'),                  emit: cluster_results
-    tuple val(taxa), path('merged_clusters.csv'),           emit: merged_clusters
     tuple val(taxa), path('pp-core-acc-dist.txt.gz'),       emit: core_acc_dist
     tuple val(taxa), path('pp-jaccard-dist.txt.gz'),        emit: jaccard_dist
-    tuple val(taxa), path('*.tar.gz', includeInputs: true), emit: new_pp_db
+    tuple val(taxa), path('*.tar.gz', includeInputs: true), emit: db
     path 'versions.yml',                                    emit: versions
 
     when:
@@ -68,16 +67,6 @@ process POPPUNK_ASSIGN {
 
     #### RENAME CLUSTER RESULTS ####
     cp */*[^_unword]_clusters.csv clusters.csv
-    
-    #### CREATE LIST OF MERGED CLUSTERS #### 
-    echo "taxa,merged_cluster,cluster" > merged_clusters.csv
-    for m in $(cat clusters.csv | cut -f 2 -d ',' | grep '_' | sort | uniq)
-    do
-        for c in $(echo ${m} | tr '_' ' ')
-        do
-            echo "!{taxa},${m},$(printf "%05d" ${c})" >> merged_clusters.csv
-        done
-    done
     
     # version info
     echo "!{task.process}:\n    poppunk: $(poppunk_assign --version | cut -f 2 -d ' ' | tr -d '\n\r\t ')" > versions.yml

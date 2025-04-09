@@ -23,10 +23,10 @@ process PUSH_TAXA_FILES {
     label 'process_low'
 
     input:
-    tuple val(taxa), path(new_pp_db)
+    tuple val(taxa), path(db), val(db_type)
 
     output:
-    path new_pp_db, emit: taxa_files
+    tuple path(db), val(db_type), emit: taxa_files
 
     when:
     task.ext.when == null || task.ext.when

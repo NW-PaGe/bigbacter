@@ -98,8 +98,8 @@ workflow BIGBACTER {
         ch_timestamp
     )
     // Create manifest channels
-    PREPARE_INPUT.out.manifest.set{ ch_manifest }
-    PREPARE_INPUT.out.manifest_path.set{ ch_manifest_path }
+    PREPARE_INPUT.out.manifest.set{ ch_man }
+    PREPARE_INPUT.out.manifest_path.set{ ch_man_path }
 
     /*
     =============================================================================================================================
@@ -109,16 +109,16 @@ workflow BIGBACTER {
     */
     // SUBWORKFLOW: Assign PopPUNK clusters
     CLUSTER(
-        ch_manifest.filter{ it -> ! it.cluster }.map{ it -> [ it.sample, it.taxa, it.assembly ] },
+        ch_man.filter{ it -> ! it.cluster }.map{ it -> [ it.sample, it.taxa, it.assembly ] },
         ch_timestamp
     )
     ch_versions = ch_versions.mix(CLUSTER.out.versions)
     // Add cluster info back and combine with manual clusters
-    ch_manifest
+    ch_man
         .filter{ it -> it.cluster }
-        .map{ it -> [ it.sample, it.cluster ] }
-        .concat(CLUSTER.out.sample_clusters)
-        .set{ ch_sample_clusters }
+        .concat( CLUSTER.out.clusters )
+        .map{ it -> [ it.sample, it.taxa, it.cluster ] }
+        .set{ ch_clusters }
 
     /*
     =============================================================================================================================
@@ -127,8 +127,8 @@ workflow BIGBACTER {
     */
     //// SUBWORKFLOW: Core genome analysis
     CORE(
-        ch_manifest.map{ it -> [ it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2 ] }.join( ch_sample_clusters, by: 0 ),
-        ch_manifest_path, 
+        ch_man.map{ it -> [ it.sample, it.taxa, it.assembly, it.fastq_1, it.fastq_2 ] }.join( ch_clusters, by: [ 0, 1 ] ),
+        ch_man_path,
         ch_timestamp
     )
     ch_versions = ch_versions.mix(CORE.out.versions)
@@ -140,9 +140,9 @@ workflow BIGBACTER {
     */
     // SUBWORKFLOW: Accessory genome analysis
     ACCESSORY(
-        CLUSTER.out.core_acc_dist,
+        CLUSTER.out.dist,
         CORE.out.tree,
-        ch_manifest_path,
+        ch_man_path,
         ch_timestamp
     )
     ch_versions = ch_versions.mix(ACCESSORY.out.versions)
@@ -163,14 +163,14 @@ workflow BIGBACTER {
 
     // MODULE: Make individual summary tables
     SUMMARY_TABLE(
-        ch_core_summary.combine(ch_manifest_path),
+        ch_core_summary.combine(ch_man_path),
         ch_timestamp
     )
 
     // MODULE: Combine summary tables
     COMBINED_SUMMARY(
        SUMMARY_TABLE.out.summary.map{taxa, cluster, summary -> [ summary ]}.collect(),
-       ch_manifest_path,
+       ch_man_path,
        ch_timestamp
    )
 
@@ -181,7 +181,7 @@ workflow BIGBACTER {
         .meta
         .join( CORE.out.dist, by: [0,1,2] )
         .join( CORE.out.tree, by: [0,1,2] )
-        .combine( ACCESSORY.out.dist.map{ taxa, cluster, source, dist -> [ taxa, cluster, dist ] }.concat( ch_manifest.filter{ it -> it.cluster }.map{ it -> [ it.taxa, it.cluster, [] ] } ), by: [0,1] )
+        .combine( ACCESSORY.out.dist.map{ taxa, cluster, source, dist -> [ taxa, cluster, dist ] }.concat( ch_man.filter{ it -> it.cluster }.map{ it -> [ it.taxa, it.cluster, [] ] } ), by: [0,1] )
         .combine( SUMMARY_TABLE.out.summary, by: [0,1] )
         .set{ ch_microreact }
     // MODULE: Create Microreact figures
@@ -199,13 +199,13 @@ workflow BIGBACTER {
     // Consolidate taxa-specific files
     CLUSTER
         .out
-        .new_pp_db
-        .set{ taxa_files }
+        .new_db
+        .set{ ch_taxa_files }
 
     // Consolidate cluster-specific files
-    ch_manifest
+    ch_man
         .map{ it -> [ it.sample, it.taxa, it.assembly ] }
-        .combine( ch_sample_clusters, by: 0 )
+        .combine( ch_clusters, by: [0,1] )
         .map{ sample, taxa, assembly, cluster -> [ taxa, cluster, assembly ] }
         .groupTuple(by: [0,1])
         .set{ ch_cluster_assemblies }
@@ -214,15 +214,15 @@ workflow BIGBACTER {
         .snp_files
         .map{ taxa, cluster, ref, new_snippy, old_snippy -> [ taxa, cluster, ref, new_snippy ] }
         .join(ch_cluster_assemblies, by: [0,1])
-        .set{ cluster_files }
+        .set{ ch_cluster_files }
 
     // if push is 'true'
-    ch_wait = cluster_files.concat(taxa_files).collect().flatten().last() // force pipeline to wait till after all new database files have been created
+    ch_wait = ch_cluster_files.concat(ch_taxa_files).collect().flatten().last() // force pipeline to wait till after all new database files have been created
     if(params.push){
         // SUBWORKFLOW: Push new BigBacter database
         PUSH_FILES(
-            cluster_files,
-            taxa_files
+            ch_cluster_files,
+            ch_taxa_files
         )
         PUSH_FILES.out.push_files.last().set{ch_wait} // update the wait channel
     }

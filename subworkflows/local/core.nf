@@ -31,8 +31,8 @@ def count_alignments ( aln_file ) {
 */
 workflow CORE {
     take:
-    manifest      // channel: [ val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster) ]
-    manifest_file // channel: [ val(samplesheet.valid.csv) ]
+    ch_man      // channel: [ val(sample), val(taxa), path(assembly), path(fastq_1), path(fastq_2), val(cluster) ]
+    ch_man_file // channel: [ val(samplesheet.valid.csv) ]
     timestamp     // channel: val(timestamp)
 
     main:
@@ -43,7 +43,7 @@ workflow CORE {
     =============================================================================================================================
     */
     // Group by taxa and cluster
-    manifest
+    ch_man
         .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster -> [ taxa, cluster, assembly ]}
         .groupTuple(by: [0,1])
         .map{ taxa, cluster, assembly -> [ taxa, cluster, assembly, file(params.db).resolve(taxa).resolve("clusters").resolve(cluster).exists() ? true : false ] }
@@ -59,11 +59,11 @@ workflow CORE {
         .map{ taxa, cluster, assembly, status -> [ taxa, cluster, file(params.db) / taxa / "clusters" / cluster / "ref/ref.fa.gz", status ] }
         .set{ clust_grps_old }
     // Combine new and old clusters into single channel and add back to reference
-    manifest
+    ch_man
         .map { sample, taxa, assembly, fastq_1, fastq_2, cluster -> [ taxa, cluster, sample, assembly, fastq_1, fastq_2 ] }
         .combine( clust_grp_new.concat( clust_grps_old ), by: [0,1] )
         .map { taxa, cluster, sample, assembly, fastq_1, fastq_2, ref, status -> [sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref] }
-        .set{ manifest }
+        .set{ ch_man }
 
     /* 
     =============================================================================================================================
@@ -72,13 +72,13 @@ workflow CORE {
     */
     // Run Snippy on each isolate
     SNIPPY_SINGLE(
-        manifest,
+        ch_man,
         timestamp
     )
     ch_versions = ch_versions.mix(SNIPPY_SINGLE.out.versions)
 
     // Group samples by taxa and cluster
-    manifest
+    ch_man
         .map{ sample, taxa, assembly, fastq_1, fastq_2, cluster, status, ref -> [ sample, taxa, cluster, status, ref ] }
         .join(SNIPPY_SINGLE.out.results, by: [0,1])
         .groupTuple(by: [1,2])
@@ -228,7 +228,7 @@ workflow CORE {
     
     // Tree figures
     TREE_FIGURE (
-        all_trees.combine(manifest_file),
+        all_trees.combine(ch_man_file),
         timestamp
     )
 
@@ -249,7 +249,7 @@ workflow CORE {
 
     // Create distance matrix figure
     DIST_MAT (
-        all_dists.combine(manifest_file),
+        all_dists.combine(ch_man_file),
         "wide",
         "Core SNPs",
         100,

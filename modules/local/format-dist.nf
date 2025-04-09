@@ -4,7 +4,6 @@ process FORMAT_DIST {
 
     input:
     tuple val(taxa), val(cluster), path(dist), path(tree)
-    val cols
 
     output:
     tuple val(taxa), val(cluster ), path("dist.formatted.txt"), path(tree), emit: dist
@@ -12,11 +11,11 @@ process FORMAT_DIST {
     when:
     task.ext.when == null || task.ext.when
 
-    shell:
+    script:
     args   = task.ext.args ?: ''
-    '''
+    """    
     # filter dist file to contain only samples in the core SNP tree.
     # doing this with shell is much faster than R or Python
-    format-dist.sh "!{dist}" "!{tree}" "!{cols}"
-    '''
+    format-dist.sh "${dist}" "${tree}" ${dist.name.endsWith('.csv.gz') ? 'bb' : 'pp'}
+    """
 }
