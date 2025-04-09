@@ -16,6 +16,8 @@ import numpy as np
 from scipy.cluster.hierarchy import dendrogram, linkage, cut_tree
 from scipy.spatial.distance import squareform
 from sklearn.manifold import MDS
+from Bio.Phylo.TreeConstruction import DistanceTreeConstructor, DistanceMatrix
+from Bio import Phylo
 
 # General utilities
 import random
@@ -82,14 +84,34 @@ start = f"""
 bb-cluster.py v{version}
 
 Written by
-(1) Jared Johnson, jared.johnson@doh.wa.gov
-(2) Holly Halstead, holly.halstead@doh.wa.gov
+- Jared Johnson, jared.johnson@doh.wa.gov
+- Holly Halstead, holly.halstead@doh.wa.gov
 
 """
 print(start)
 
 
 #----- FUNCTIONS -----#
+def dropExt(filename):
+    """
+    Removes extensions from FASTA, FASTQ, and Sourmash signature files
+
+    Parameters:
+        filename (str): The name of the file to process.
+
+    Returns:
+        str: The filename with the specified extensions removed.
+    """
+    extensions = [".fa", ".fna", ".fasta", ".fas", ".fq", ".fastq", ".sig"]
+    
+    for ext in extensions:
+        if filename.endswith(ext):
+            filename = filename[:-len(ext)]
+        elif filename.endswith(ext + ".gz"):
+            filename = filename[:-len(ext + ".gz")]
+    
+    return filename
+
 def table2term(data, header):
     """
     Prints a list of lists to the terminal with equal padding and header
@@ -491,6 +513,16 @@ def summarize(data, clusters):
 
         labels = [str(c) for c in clusters.values()]
 
+        # Create dot file for Microreact
+        dot_list = ['graph G { ']
+        for index, id in enumerate(ids):
+            dot = f'\"{id}\"[x=\"{x[index]}\",y=\"{y[index]}\"]; '
+            dot_list.append(dot)
+        dot_list.append(' }')
+        dot_file = ''.join(dot_list)
+        with open(os.path.join(args.outdir, 'mds.dot'), "w") as file:
+            file.write(dot_file)
+
         # Separate the data into groups by cluster number (called categories here)
         categories = {}
         for i in range(len(labels)):
@@ -517,6 +549,21 @@ def summarize(data, clusters):
 
     except Exception as e:
         print(f"MDS not made: {e}", flush=True)
+    
+    # Create neighbor-joining tree
+    try:
+        lower_triangle = []
+        for i in range(len(ids)):
+            lower_triangle.append(mat[i][:i + 1].tolist())
+        mat_named = DistanceMatrix(names=ids, matrix= lower_triangle)
+
+        constructor = DistanceTreeConstructor()
+        nj_tree = constructor.nj(mat_named)
+        nj_tree.root_at_midpoint()
+
+        Phylo.write(nj_tree, os.path.join(args.outdir, 'tree.nwk'), "newick")
+    except Exception as e:
+        print(f"NJ tree not made: {e}", flush=True)
 
 
 #----- MAIN -----#
@@ -538,7 +585,7 @@ if __name__ == "__main__":
     # Generate MinHash signatures for query genomes
     mh_query = {}
     for genome in args.query:
-        name = os.path.splitext(os.path.basename(genome))[0]
+        name = dropExt(str(os.path.basename(genome)))
         mh = sourmash.MinHash(n=0, ksize=args.ksize, scaled=1000)
         for record in screed.open(genome):
             mh.add_sequence(record.sequence, True)
@@ -562,7 +609,7 @@ if __name__ == "__main__":
         # Load existing signatures
         mh_sig = {}
         for sig in args.sigs:
-            sig_name = os.path.splitext(os.path.basename(sig))[0]
+            sig_name = dropExt(str(os.path.basename(sig)))
             if sig_name in old_clusters:
                 mh = load_one_signature(sig)
                 mh_sig[sig_name] = {'mh': mh.minhash}
