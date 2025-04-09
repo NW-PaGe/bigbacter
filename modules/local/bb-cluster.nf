@@ -47,7 +47,7 @@ process BB_CLUSTER {
     tar -czvf ${timestamp}.tar.gz ${timestamp}
 
     ## Prepare files for publishing
-    mv new_dist/* ./ || true
+    mv new_db/* ./ || true
     gzip dist.all.csv || true
 
     cat <<-END_VERSIONS > versions.yml
