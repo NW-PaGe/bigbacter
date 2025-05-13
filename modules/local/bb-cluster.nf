@@ -35,6 +35,7 @@ process BB_CLUSTER {
     # Assign clusters
     bb-cluster.py \\
         ${args} \\
+        --dist ${params.bb_dist} \\
         --outdir new_db \\
         --query ${assembly} \\
         \${DB_FILES}
