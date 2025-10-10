@@ -215,6 +215,15 @@
                 "run_id": {
                     "fa_icon": "fas fa-skull-crossbones",
                     "description": "Run ID. This will bypass the epoch timestamp. Only change if you know what you are doing."
+                },
+                "ncbi_max_concurrent": {
+                    "type": "integer",
+                    "default": 3,
+                    "minimum": 1,
+                    "maximum": 10,
+                    "fa_icon": "fas fa-download",
+                    "description": "Maximum number of concurrent downloads from NCBI. Reducing this value helps avoid NCBI rate limiting (429 errors).",
+                    "help_text": "NCBI has rate limits on API requests. Setting this too high (>3) may result in '429 Too Many Requests' errors. Setting it to 1-2 is recommended for reliability."
                 }
             },
             "fa_icon": "fas fa-terminal"
