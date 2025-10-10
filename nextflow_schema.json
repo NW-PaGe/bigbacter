@@ -218,7 +218,7 @@
                 },
                 "ncbi_max_concurrent": {
                     "type": "integer",
-                    "default": 3,
+                    "default": 2,
                     "minimum": 1,
                     "maximum": 10,
                     "fa_icon": "fas fa-download",
