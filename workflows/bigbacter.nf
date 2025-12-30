@@ -205,7 +205,7 @@ workflow BIGBACTER {
     // Consolidate cluster-specific files
     ch_manifest
         .map{ it -> [ it.sample, it.taxa, it.assembly ] }
-        .combine( ch_sample_clusters, by: 0 )
+        .join( ch_sample_clusters, by: 0 )
         .map{ sample, taxa, assembly, cluster -> [ taxa, cluster, assembly ] }
         .groupTuple(by: [0,1])
         .set{ ch_cluster_assemblies }
