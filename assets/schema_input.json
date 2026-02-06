@@ -1,0 +1,55 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/DOH-JDJ0303/bigbacter-nf/master/assets/schema_input.json",
+    "title": "DOH-JDJ0303/bigbacter-nf pipeline - params.input schema",
+    "description": "Schema for the file provided with params.input",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "sample": {
+                "type": "string",
+                "pattern": "^\\S+$",
+                "errorMessage": "Sample name must be provided and cannot contain spaces",
+                "meta": ["id"]
+            },
+            "fastq_1": {
+                "type": "string",
+                "format": "file-path",
+                "exists": true,
+                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q(\\.gz)?$",
+                "errorMessage": "Cannot contain spaces and must end with valid fastq extension (.fq or .fastq)"
+            },
+            "fastq_2": {
+                "type": "string",
+                "format": "file-path",
+                "exists": true,
+                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q(\\.gz)?$",
+                "errorMessage": "Cannot contain spaces and must end with valid fastq extension (.fq or .fastq)"
+            },
+            "assembly": {
+                "type": "string",
+                "format": "file-path",
+                "exists": true,
+                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(a(sta)?|na)(\\.gz)?$"
+            },
+            "taxa": {
+                "type": "string"
+            },
+            "sra": {
+                "type": "string",
+                "pattern": "^(SRR|ERR|DRR)\\d{6,}$",
+                "errorMessage": "Sequence Read Archive (SRA) accession"
+            },
+            "genbank": {
+                "type": "string",
+                "pattern": "^GC[FA]_\\d{9}\\.\\d+$",
+                "errorMessage": "NCBI GenBank accession"
+            },
+            "cluster": {
+                "type": "string"
+            }
+        },
+        "required": ["sample"]
+    }
+}
