@@ -68,7 +68,7 @@ workflow VARIANTS {
         .old_cluster
         .map { meta ->
             def cluster_path = file(params.db) / meta.taxa / 'clusters' / meta.cluster
-            def ref_path     = cluster_path / 'assembly' / 'ref.fa.gz'
+            def ref_path     = cluster_path / 'asm' / 'ref.fa.gz'
             def ref_meta     = cluster_path / 'aux' / 'ref.json'
             def snp_dir      = cluster_path / 'var'
 

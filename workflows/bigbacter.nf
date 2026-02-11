@@ -10,7 +10,7 @@ include { VARIANTS               } from '../subworkflows/local/variants/main'
 include { REPORT                 } from '../subworkflows/local/report/main'
 include { PUSH                   } from '../subworkflows/local/push/main'
 
-include { MULTIQC                } from '../modules/nf-core/multiqc/main'
+include { MULTIQC                } from '../modules/local/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'

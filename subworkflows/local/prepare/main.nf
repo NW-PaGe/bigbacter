@@ -8,7 +8,7 @@ include { FASTQC        } from '../../../modules/nf-core/fastqc/main'
 include { FASTP         } from '../../../modules/nf-core/fastp/main'
 
 include { NCBI_DATASETS } from '../../../modules/local/ncbi_datasets/main'
-include { SHOVILL       } from '../../../modules/nf-core/shovill/main'
+include { SHOVILL       } from '../../../modules/local/shovill/main'
 include { STD_ASSEMBLY  } from '../../../modules/local/standardize/assembly/main'
 
 workflow PREPARE {
