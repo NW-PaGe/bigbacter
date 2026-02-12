@@ -15,11 +15,17 @@ process FLOC {
     task.ext.when == null || task.ext.when
 
     script:
+    def args = task.ext.args ?: '' 
     tool = 'floc'
     """
     ${tool} \\
         --pairwise \\
-        ${params.overwrite ? '--overwrite' : ''} \\
+        -d ${params.clust_dist} \\
+        --abund-z ${params.clust_z} \\
+        --min-global-abund ${params.clust_min_global} \\
+        --max-global-dist ${params.clust_max_global} \\
+        ${params.clust_ignore_qc ? '--ignore-qc' : ''} \\
+        ${args} \\
         input/
 
     # version info

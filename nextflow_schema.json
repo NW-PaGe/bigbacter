@@ -76,11 +76,6 @@
                     "type": "boolean",
                     "description": "Push outputs to database",
                     "fa_icon": "fas fa-paper-plane"
-                },
-                "overwrite": {
-                    "type": "boolean",
-                    "description": "Overwrite sample in database - not yet functional",
-                    "fa_icon": "fas fa-backspace"
                 }
             }
         },
@@ -101,6 +96,38 @@
                     "default": "/home/jdj0303/dev/bigbacter/v2.0/doh-jdj0303-bigbacter/assets/template.microreact",
                     "description": "Microreact template JSON for visualization",
                     "fa_icon": "fas fa-file"
+                }
+            }
+        },
+        "new_group_1": {
+            "title": "New Group 1",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "clust_dist": {
+                    "type": "number",
+                    "default": 0.03,
+                    "description": "Distance threshold used to create clusters",
+                    "fa_icon": "fas fa-ruler-horizontal"
+                },
+                "clust_z": {
+                    "type": "integer",
+                    "default": 3,
+                    "description": "Z-score threshold used for sample-level quality filtering based on total hash abundance",
+                    "fa_icon": "fas fa-chart-pie"
+                },
+                "clust_min_global": {
+                    "type": "number",
+                    "default": 0.05,
+                    "description": "Minimum abundance of a global hash to be included in global distance calculation",
+                    "fa_icon": "fas fa-chart-pie"
+                },
+                "clust_max_global": {
+                    "type": "number",
+                    "default": 0.5,
+                    "description": "Maximum fraction of sample hashes missing from global hashes after abundance filtering",
+                    "fa_icon": "fas fa-chart-pie"
                 }
             }
         },
@@ -371,6 +398,9 @@
         },
         {
             "$ref": "#/$defs/assets"
+        },
+        {
+            "$ref": "#/$defs/new_group_1"
         },
         {
             "$ref": "#/$defs/reference_selection"
