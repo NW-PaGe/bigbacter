@@ -62,7 +62,7 @@ workflow CLASSIFY {
         .groupTuple(by: 0)
         .map { meta, assemblies -> 
             def sig_db = file(params.db) / meta.taxa / 'sig'
-            [meta, assemblies, sig_db]
+            [meta, assemblies, sig_db.exists() ? sig_db : []]
         }
 
     // Run FLOC clustering
