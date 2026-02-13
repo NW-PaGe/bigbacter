@@ -52,6 +52,7 @@ workflow VARIANTS {
     SELECT_REF(
         ch_manifest
             .map { [Utils.cluster_meta(it.meta), it.assembly] }
+            .groupTuple(by: 0)
             .join(ch_cluster_status.new_cluster)
     )
     ch_versions = ch_versions.mix(SELECT_REF.out.versions.first())
