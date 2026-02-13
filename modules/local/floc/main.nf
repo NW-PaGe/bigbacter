@@ -3,12 +3,14 @@ process FLOC {
     stageInMode 'copy'
 
     input:
-    tuple val(meta), path(assemblies, stageAs: 'input/*'), path(db, stageAs: 'input/')
+    tuple val(meta), path(assemblies, stageAs: 'input/asm/*'), path(db, stageAs: 'input/')
 
     output:
-    tuple val(meta), path("clusters.csv"), emit: clusters
-    tuple val(meta), path("sigs/*"),       emit: sigs
-    tuple val(meta), path("dist/*"),       emit: dist
+    tuple val(meta), path("clusters.csv"),           emit: clusters
+    tuple val(meta), path("sigs/*"),                 emit: sigs
+    tuple val(meta), path("dist/*"),                 emit: dist
+    tuple val(meta), path("global_containment.csv"), emit: qc
+
     path "versions.yml", emit: versions
 
     when:
@@ -21,12 +23,12 @@ process FLOC {
     ${tool} \\
         --pairwise \\
         -d ${params.clust_dist} \\
-        --abund-z ${params.clust_z} \\
-        --min-global-abund ${params.clust_min_global} \\
-        --max-global-dist ${params.clust_max_global} \\
+        --min-hash-frac ${params.clust_min_hash_frac} \\
+        --min-hash-freq ${params.clust_min_hash_freq} \\
         ${params.clust_ignore_qc ? '--ignore-qc' : ''} \\
+        ${params.clust_overwrite ? '--overwrite' : ''} \\
         ${args} \\
-        input/
+        input/*/
 
     # version info
     cat <<-END_VERSIONS > versions.yml

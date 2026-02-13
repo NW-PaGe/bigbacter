@@ -111,23 +111,27 @@
                     "description": "Distance threshold used to create clusters",
                     "fa_icon": "fas fa-ruler-horizontal"
                 },
-                "clust_z": {
-                    "type": "integer",
-                    "default": 3,
-                    "description": "Z-score threshold used for sample-level quality filtering based on total hash abundance",
-                    "fa_icon": "fas fa-chart-pie"
-                },
-                "clust_min_global": {
+                "clust_min_hash_freq": {
                     "type": "number",
                     "default": 0.05,
-                    "description": "Minimum abundance of a global hash to be included in global distance calculation",
-                    "fa_icon": "fas fa-chart-pie"
+                    "fa_icon": "fas fa-chart-pie",
+                    "description": "Minimum frequency for a hash to be included in the global hashes"
                 },
-                "clust_max_global": {
+                "clust_min_hash_frac": {
                     "type": "number",
                     "default": 0.5,
-                    "description": "Maximum fraction of sample hashes missing from global hashes after abundance filtering",
-                    "fa_icon": "fas fa-chart-pie"
+                    "fa_icon": "fas fa-chart-pie",
+                    "description": "Minimum fraction of sample hashes shared with the global hashes after filtering"
+                },
+                "clust_ignore_qc": {
+                    "type": "boolean",
+                    "fa_icon": "fab fa-freebsd",
+                    "description": "Ignore clustering QC results - include all samples and do not fail"
+                },
+                "clust_overwrite": {
+                    "type": "boolean",
+                    "fa_icon": "fab fa-freebsd",
+                    "description": "Overwrite signature files if they already exist for a sample"
                 }
             }
         },
