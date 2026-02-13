@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""
-bigbacter_report.py
-Author: Jared Johnson, jared.johnson@doh.wa.gov
-
-Selects the best reference assembly from multiple FASTA files based on
-containment in a global sketch and assembly quality metrics.
-"""
 
 import argparse
 import gzip
@@ -171,7 +164,7 @@ def main() -> None:
     parser.add_argument(
         '--contig-penalty',
         type=float,
-        default=0.5,
+        default=0.2,
         help='Penalize fragmented assemblies (score = d × length / n_contigs^penalty)'
     )
     parser.add_argument(
@@ -201,7 +194,7 @@ def main() -> None:
     
     # Log startup
     logger.info("="*60)
-    logger.info(f"BigBacter Report v{VERSION}")
+    logger.info(f"bigbacter_select_ref.py v{VERSION}")
     logger.info(f"Author: Jared Johnson")
     logger.info("="*60)
     logger.info(f"Processing {len(args.input)} assemblies")
