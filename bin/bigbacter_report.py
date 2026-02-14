@@ -27,7 +27,7 @@ COL_ORDER = [
     'taxa', 'cluster', 'partition', 'strong_links', 
     'inter_links', 'genome_fraction', 'core_fraction', 
     'length', 'masked', 'missing', 'mixed', 'variants', 
-    'recomb_masked', 'label'
+    'recomb_masked'
 ]
 
 # -------------------------------
@@ -241,6 +241,19 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
         LOGGER.info(f"Processed k-mer distance matrix from {db_dist_file}")
 
     # ----------------------------
+    # Reference metadata
+    # ----------------------------
+    ref_name = "Reference"
+    if ref_meta_file:
+        try:
+            ref_meta = load_json(ref_meta_file)
+            ref_origin = get_assembly_stem(ref_meta.get('name', '')).strip()
+            if ref_origin:
+                ref_name = f"{ref_name}_[{ref_origin}]"
+        except:
+            LOGGER.warning("Failed to load reference metadata")
+
+    # ----------------------------
     # Tree + partitions
     # ----------------------------
     snp_tree_out = Path(outdir) / f"{args.prefix}_snp-tree{args.suffix}nwk"
@@ -260,6 +273,10 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
             LOGGER.warning("Branch lengths not scaled (failed to parse Reference length)")
 
         for clade in tree.find_clades():
+            # Update reference name
+            if clade.is_terminal() and clade.name == 'Reference':
+                clade.name = ref_name
+            # Rescale branch
             bl = getattr(clade, "branch_length", None)
             if bl is not None:
                 try:
@@ -275,40 +292,26 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
         _extend_dict(out, {l: {'partition': p} for l, p in zip(labels, parts)})
 
         LOGGER.info("Processed tree with %d tips and partitions; wrote %s", len(labels), snp_tree_out)
-
-    # ----------------------------
-    # Reference metadata
-    # ----------------------------
-    if ref_meta_file:
-        try:
-            ref_meta = load_json(ref_meta_file)
-            ref_name = get_assembly_stem(ref_meta.get('name', ''))
-            if ref_name:
-                ref_name = f' ({ref_name})'
-        except:
-            LOGGER.warning("Failed to load reference metadata")
-            ref_name = ''
             
     # ----------------------------
-    # Build final summary and write TSV
+    # Build final summary and write CSV
     # ----------------------------
     summary_out = Path(outdir) / f"{args.prefix}_summary{args.suffix}csv"
     summary_records: List[Dict[str, Any]] = []
 
     for sample_id, sample_data in out.items():
         rec: Dict[str, Any] = {
-            "sample": sample_id,
+            "sample": ref_name if sample_id == "Reference" else sample_id,
             "status": "new" if sample_id in samples else "old",
             "run": timestamp_epoch,
             "taxa": args.taxa,
             "cluster": args.cluster,
-            "recomb_masked": args.recomb_masked,
-            "label": sample_id + ref_name if sample_id == 'Reference' else sample_id
+            "recomb_masked": args.recomb_masked
         }
         for k, v in sample_data.items():
             if k in {"name"}:
                 continue
-            rec[k] = ";".join(map(str, v)) if isinstance(v, list) else v
+            rec[k] = ":".join(map(str, v)) if isinstance(v, list) else v
         summary_records.append(rec)
 
     if not summary_records:
@@ -326,21 +329,19 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
     # 2) add any remaining columns not specified (sorted for stability)
     remaining = sorted(all_keys - set(ordered))
 
-    fieldnames = ordered + remaining
+    summary_fieldnames = ordered + remaining
 
-    with open(summary_out, "w", newline="", encoding="utf-8") as f:
+    with open(summary_out, "w", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f,
-            fieldnames=fieldnames,
-            delimiter="\t",
-            quoting=csv.QUOTE_MINIMAL,
-            extrasaction="ignore",
+            fieldnames=summary_fieldnames,
+            delimiter=","
         )
         writer.writeheader()
         writer.writerows(summary_records)
 
     LOGGER.info(
-        f"Wrote {summary_out} with {len(summary_records)} records and {len(fieldnames)} columns"
+        f"Wrote {summary_out} with {len(summary_records)} records and {len(summary_fieldnames)} columns"
     )
 
     # ----------------------------
@@ -387,11 +388,8 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
         )
 
         # Columns from written summary (if exists)
-        if summary_out.exists():
-            with open(summary_out, "r", encoding="utf-8", newline="") as f:
-                header = next(csv.reader(f, delimiter="\t"), [])
-            if header:
-                mr_json['tables']['table-1']['columns'] = [{"field": h, "fixed": False} for h in header if h not in ['label']]
+        if summary_fieldnames:
+            mr_json['tables']['table-1']['columns'] = [{"field": f, "fixed": False} for f in summary_fieldnames]
 
         microreact_out = Path(outdir) / f"{args.prefix}{args.suffix}microreact"
         with open(microreact_out, "w", encoding="utf-8") as f:
