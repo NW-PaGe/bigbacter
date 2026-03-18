@@ -98,18 +98,21 @@ workflow VARIANTS {
     */
 
     DS_RATE(
-        ch_read_stats
-            .map { meta, json -> [meta.id, json] }
-            .join(
-                ch_manifest.map { [it.meta.id, Utils.cluster_meta(it.meta)] }
-            )
-            .map { sid, json, meta -> [meta, json] }
-            .groupTuple()
-            .join(
-                ch_cluster_data.map { meta, ref_path, ref_meta, snp_files -> 
-                    [Utils.cluster_meta(meta), ref_path] 
-                }
-            )
+    ch_read_stats
+        .map { meta, json -> [meta.id, json] }
+        .join(
+            ch_manifest.map { [it.meta.id, Utils.cluster_meta(it.meta)] }
+        )
+        .map { sid, json, cluster_meta -> [cluster_meta, json] }
+        .groupTuple()
+        .map { cluster_meta, jsons -> 
+            [cluster_meta + [timestamp: ch_timestamp], jsons]  // Add timestamp directly
+        }
+        .join(
+            ch_cluster_data.map { meta, ref_path, ref_meta, snp_files -> 
+                [Utils.cluster_meta(meta), ref_path] 
+            }
+        )
     )
     ch_versions = ch_versions.mix(DS_RATE.out.versions.first())
 
