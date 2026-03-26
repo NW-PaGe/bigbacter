@@ -1,5 +1,19 @@
 reports:
-  multiqc_report.html:
-    display: "MultiQC HTML report"
-  samplesheet.csv:
-    display: "Auto-created samplesheet with collated metadata and FASTQ paths"
+  "*/*/other/software_versions.yml":
+    display: "Software versions"
+  "*/*/*/*/summary/*_summary.*":
+    display: "Run summary"
+  # "*/*/*/*/figures/*":
+  #   display: "Figures"
+  "*/*/*/*/report/*":
+    display: "Reports"
+  "*/*/*/*/aln/*":
+    display: "Genome alignment files"
+  "*/*/*/*/var/*":
+    display: "Compressed Snippy files for each isolate"
+  "*/*/*/*/tree/*":
+    display: "Phylogenetic trees"
+  "*/*/*/*/dist/*":
+    display: "Genome distance metrics"
+  "*/*/*/*/qc/*":
+    display: "QC"

@@ -93,6 +93,22 @@ workflow VARIANTS {
 
     /*
     =============================================================================================================================
+        PRESERVE TIMESTAMP FOR ALL CLUSTER-LEVEL PROCESSES
+    =============================================================================================================================
+    */
+
+    // Create a reusable channel mapping cluster -> timestamp
+    // This will be joined with ALL cluster-level metadata to ensure publishDir paths are correct
+    ch_cluster_timestamps = ch_manifest
+        .map { tuple ->
+            def cluster_meta = Utils.cluster_meta(tuple.meta)
+            def timestamp = tuple.meta.timestamp
+            [[taxa: cluster_meta.taxa, cluster: cluster_meta.cluster], timestamp]
+        }
+        .unique()
+
+    /*
+    =============================================================================================================================
         CALCULATE READ DOWNSAMPLING RATES
     =============================================================================================================================
     */
@@ -103,8 +119,17 @@ workflow VARIANTS {
             .join(
                 ch_manifest.map { [it.meta.id, Utils.cluster_meta(it.meta)] }
             )
-            .map { sid, json, meta -> [meta, json] }
+            .map { sid, json, cluster_meta -> [cluster_meta, json] }
             .groupTuple()
+            .map { cluster_meta, jsons ->
+                // Create join key from cluster_meta
+                [[taxa: cluster_meta.taxa, cluster: cluster_meta.cluster], cluster_meta, jsons]
+            }
+            .join(ch_cluster_timestamps)
+            .map { key, cluster_meta, jsons, timestamp ->
+                // Add timestamp back to cluster_meta
+                [cluster_meta + [timestamp: timestamp], jsons]
+            }
             .join(
                 ch_cluster_data.map { meta, ref_path, ref_meta, snp_files -> 
                     [Utils.cluster_meta(meta), ref_path] 
@@ -161,13 +186,20 @@ workflow VARIANTS {
             def old_snps_keep = old_snps.flatten().findAll { !new_names.contains(it.name) }
             def all_snps      = (new_snps + old_snps_keep).flatten()
 
-            [meta + [n: all_snps.size()], ref_path, all_snps]
+            // Create join key for timestamp enrichment
+            [[taxa: meta.taxa, cluster: meta.cluster], meta + [n: all_snps.size()], ref_path, all_snps]
+        }
+        .join(ch_cluster_timestamps)
+        .map { key, meta, ref_path, all_snps, timestamp ->
+            // Add timestamp to metadata before SNIPPY_CORE
+            [meta + [timestamp: timestamp], ref_path, all_snps]
         }
 
     SNIPPY_CORE(ch_indv_snp_files)
     ch_versions = ch_versions.mix(SNIPPY_CORE.out.versions.first())
 
     // Prepare alignment channel with recombination mask placeholder
+    // Note: meta already has timestamp from SNIPPY_CORE enrichment above
     ch_aln = SNIPPY_CORE
         .out
         .full_aln
