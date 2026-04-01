@@ -155,14 +155,14 @@ workflow VARIANTS {
 
     SNIPPY_SINGLE(
         ch_manifest
-            .map { [Utils.cluster_meta(it.meta), it.meta, it.reads] }
+            .map { [Utils.cluster_meta(it.meta), it.meta, it.reads, it.assembly] }
             .combine(ch_cluster_data, by: 0)
-            .map { cluster_meta, meta, reads, ref_path, ref_meta, snp_files -> 
-                [meta.id, meta, reads, ref_path] 
+            .map { cluster_meta, meta, reads, assembly, ref_path, ref_meta, snp_files -> 
+                [meta.id, meta, reads, assembly, ref_path] 
             }
-            .join(ch_ds_rate, by: 0)
-            .map { sid, meta, reads, ref_path, rate -> 
-                [meta, reads, ref_path, rate] 
+            .join(ch_ds_rate, by: 0, remainder: true)
+            .map { sid, meta, reads, assembly, ref_path, rate ->
+                [meta, reads[0] ? reads : [], assembly, ref_path, rate] 
             }
     )
     ch_versions = ch_versions.mix(SNIPPY_SINGLE.out.versions.first())

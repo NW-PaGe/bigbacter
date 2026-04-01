@@ -4,7 +4,7 @@ process SNIPPY_SINGLE {
     stageInMode "copy"
 
     input:
-    tuple val(meta), path(reads), path(ref, stageAs: 'ref.fa.gz'), val(downsample_rate)
+    tuple val(meta), path(reads), path(assembly), path(ref, stageAs: 'ref.fa.gz'), val(downsample_rate)
 
     output:
     tuple val(meta), path('*.tar.gz'), emit: results
@@ -16,18 +16,24 @@ process SNIPPY_SINGLE {
 
     script:
     args = task.ext.args ?: ''
+    asm_gz_arg    = reads ? "" : "gzip -d ${assembly}"
+    reads_arg     = reads ? "--R1 ${reads[0]} --R2 ${reads[1]}" : "--ctgs ${assembly.baseName}"
+    subsample_arg = reads ? "--subsample ${downsample_rate}" : ""
+    
     """
     # extract reference
     gzip -d ${ref}
 
+    # extract assembly (if used)
+    ${asm_gz_arg}
+
     # run Snippy
     snippy \\
         --reference ref.fa \\
-        --R1 ${reads[0]} \\
-        --R2 ${reads[1]} \\
+        ${reads_arg} \\
+        ${subsample_arg} \\
         --outdir ${meta.id} \\
         --cpus ${task.cpus} \\
-        --subsample ${downsample_rate} \\
         ${args}
 
     # compress output

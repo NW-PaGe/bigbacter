@@ -63,9 +63,11 @@ workflow PREPARE {
     ==================================================================================================
     */
 
+    // Drop any samples that still do not have reads
+    ch_reads = ch_reads.filter{ meta, reads -> reads[0] }
+
     // Downsample high-coverage samples
     if (params.max_reads) {
-
         ch_reads
             .map { meta, reads ->
                 def read_count = reads[0].countFastq() * 2
@@ -155,14 +157,14 @@ workflow PREPARE {
     */
 
     ch_manifest = ch_assemblies_std
-        .map { meta, assembly -> [meta.id, assembly] }
+        .map { meta, assembly -> [meta.id, meta, assembly] }
         .join(
-            ch_reads.map { meta, reads -> [meta.id, meta, reads] },
+            ch_reads.map { meta, reads -> [meta.id, reads] },
             by: 0,
             remainder: true
         )
-        .map { id, assembly, meta, reads ->
-            [meta: meta, reads: reads, assembly: assembly]
+        .map { id, meta, assembly, reads ->
+            [meta: meta, reads: reads ? reads : [[],[]], assembly: assembly]
         }
 
     emit:
