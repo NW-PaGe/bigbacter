@@ -33,6 +33,20 @@ COL_ORDER = [
 # -------------------------------
 #  HELPERS
 # -------------------------------
+def _rename_reference(data: Dict[str, Dict[str, Any]], ref_name: str, depth: int = 1) -> Dict[str, Dict[str, Any]]:
+    """Rename 'Reference' row and column keys to ref_name.
+    
+    depth=1: rename outer row keys only
+    depth=2: rename outer row keys and inner column keys (default)
+    """
+    if ref_name == "Reference":
+        return data
+    if depth == 2:
+        for v in data.values():
+            if isinstance(v, dict) and "Reference" in v:
+                v[ref_name] = v.pop("Reference")
+    if "Reference" in data:
+        data[ref_name] = data.pop("Reference")
 
 def _ensure_path(p: Path, label: str) -> bool:
     if not p.exists():
@@ -84,9 +98,9 @@ def _list2map(data: List[Dict[str, Any]], key: str) -> Dict[str, Dict[str, Any]]
 
 def _sniff_open(path):
     if path.suffix == '.gz':
-        return gzip.open(path, 'rt')
+        return gzip.open(path, 'rt', encoding='utf-8-sig')
     else:
-        return open(path, 'r')
+        return open(path, 'r', encoding='utf-8-sig')
     
 def _sniff_delimiter(path):
     # Robust delimiter sniff with fallback
@@ -194,7 +208,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
     snp_summary_file    = _find_file(indir, "summary.csv")
     snp_dist_file       = _find_file(indir, "dist_wide.csv")
     snp_tree_file       = _find_file(indir, "core.aln.*")
-    db_dist_file        = _find_file(indir, "*.tsv.gz")
+    mh_dist_file        = _find_file(indir, "*.tsv.gz")
     ref_meta_file       = indir / "ref.json"
     microreact_template = indir / "template.microreact"
 
@@ -210,37 +224,6 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
         LOGGER.warning(f"Samplesheet not found: {samplesheet_file}")
 
     # ----------------------------
-    # Alignment stats
-    # ----------------------------
-    stats_dict: Dict[str, Dict[str, Any]] = {}
-    if snp_summary_file:
-        stats_dict = _list2map(_load_delim(snp_summary_file), key='name')
-        if stats_dict:
-            _extend_dict(out, stats_dict)
-        LOGGER.info(f"Loaded alignment stats ({len(stats_dict)} rows) from {snp_summary_file}")
-    else:
-        LOGGER.warning("No summary.csv found")
-
-    # ----------------------------
-    # SNP distance matrix
-    # ----------------------------
-    snp_dist_out = Path(outdir) / f"{args.prefix}_snp-dist{args.suffix}csv"
-    if snp_dist_file:
-        snp_dist_data = _list2map(_load_delim(snp_dist_file), key='name')
-        _dist2csv(snp_dist_data, outfile=snp_dist_out)
-        _extend_dict(out, _find_links(snp_dist_data, args.strong_link, args.inter_link))
-        LOGGER.info(f"Processed SNP distance matrix from {snp_dist_file}")
-
-    # ----------------------------
-    # K-mer distance matrix from database
-    # ----------------------------
-    db_dist_out = Path(outdir) / f"{args.prefix}_db-dist{args.suffix}csv"
-    if db_dist_file:
-        db_dist_data = _list2map(_load_delim(db_dist_file), key='')
-        _dist2csv(db_dist_data, outfile=db_dist_out)
-        LOGGER.info(f"Processed k-mer distance matrix from {db_dist_file}")
-
-    # ----------------------------
     # Reference metadata
     # ----------------------------
     ref_name = "Reference"
@@ -254,6 +237,44 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
             LOGGER.warning("Failed to load reference metadata")
 
     # ----------------------------
+    # Alignment stats
+    # ----------------------------
+    stats_dict: Dict[str, Dict[str, Any]] = {}
+    if snp_summary_file:
+        stats_dict = _list2map(_load_delim(snp_summary_file), key='name')
+        if stats_dict:
+            _rename_reference(stats_dict, ref_name)
+            _extend_dict(out, stats_dict)
+        LOGGER.info(f"Loaded alignment stats ({len(stats_dict)} rows) from {snp_summary_file}")
+    else:
+        LOGGER.warning("No summary.csv found")
+
+    # ----------------------------
+    # SNP distance matrix
+    # ----------------------------
+    snp_dist_out = Path(outdir) / f"{args.prefix}_snp-dist{args.suffix}csv"
+    if snp_dist_file:
+        snp_dist_data = _list2map(_load_delim(snp_dist_file), key='name')
+        _rename_reference(snp_dist_data, ref_name, depth=2)
+        _dist2csv(snp_dist_data, outfile=snp_dist_out)
+        _extend_dict(out, _find_links(snp_dist_data, args.strong_link, args.inter_link))
+        LOGGER.info(f"Processed SNP distance matrix from {snp_dist_file}")
+
+    # ----------------------------
+    # MinHash containment distance
+    # ----------------------------
+    mh_dist_out = Path(outdir) / f"{args.prefix}_db-dist{args.suffix}csv"
+    if mh_dist_file:
+        mh_dist_data = _list2map(_load_delim(mh_dist_file), key='')
+        for k1, v1 in mh_dist_data.items():
+            for k2 in v1:
+                mh_dist_data[k1][k2] = round(100 * (1.0 - float(v1[k2])), 1)
+
+        _dist2csv(mh_dist_data, outfile=mh_dist_out)
+        LOGGER.info(f"Processed MinHash containment distance matrix from {mh_dist_file}")
+
+
+    # ----------------------------
     # Tree + partitions
     # ----------------------------
     snp_tree_out = Path(outdir) / f"{args.prefix}_snp-tree{args.suffix}nwk"
@@ -264,7 +285,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
         # Attempt to scale by reference length if present
         scale = 1.0
         try:
-            vb = stats_dict.get('Reference', {}).get('length')
+            vb = stats_dict.get(ref_name, {}).get('length')
             if vb not in (None, ""):
                 scale = float(vb)
             else:
@@ -353,7 +374,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
             "summary_file": {"pane_id": "table-1", "file": summary_out},
             "snp_tree_file": {"pane_id": "tree-1", "file": snp_tree_out},
             "snp_dist_file": {"pane_id": "matrix-1", "file": snp_dist_out},
-            "db_dist_file": {"pane_id": "matrix-2", "file": db_dist_out},
+            "mh_dist_file": {"pane_id": "matrix-2", "file": mh_dist_out},
         }
 
         mr_json = load_json(microreact_template)
