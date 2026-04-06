@@ -38,12 +38,10 @@
             },
             "sra": {
                 "type": "string",
-                "pattern": "^(SRR|ERR|DRR)\\d{6,}$",
                 "errorMessage": "Sequence Read Archive (SRA) accession"
             },
             "genbank": {
                 "type": "string",
-                "pattern": "^GC[FA]_\\d{9}\\.\\d+$",
                 "errorMessage": "NCBI GenBank accession"
             },
             "cluster": {
