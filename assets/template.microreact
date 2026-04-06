@@ -43,11 +43,11 @@
       "size": 284,
       "type": "matrix"
     },
-    "kmer_dist_file": {
+    "mh_dist_file": {
       "blob": "",
       "format": "text/csv",
-      "id": "kmer_dist_file",
-      "name": "no_kmer_tree_file",
+      "id": "mh_dist_file",
+      "name": "no_mh_dist_file",
       "size": 284,
       "type": "matrix"
     }
@@ -80,7 +80,7 @@
       "truncateLabels": true,
       "rotateAxisLabels": 90,
       "paneId": "matrix-2",
-      "file": "kmer_dist_file"
+      "file": "mh_dist_file"
     }
   },
   "maps": {},
@@ -167,13 +167,13 @@
                       {
                         "type": "tab",
                         "id": "matrix-1",
-                        "name": "Core SNP Matrix",
+                        "name": "Core SNP",
                         "component": "Matrix"
                       },
                       {
                         "type": "tab",
                         "id": "matrix-2",
-                        "name": "K-mer Matrix",
+                        "name": "% Avg Genome Containment",
                         "component": "Matrix"
                       }
                     ]
@@ -282,8 +282,8 @@
       "styleNodeEdges": false,
       "subtreeIds": null,
       "type": "rc",
-      "title": "Tree",
-      "labelField": "label",
+      "title": "Maximum Likelihood Tree",
+      "labelField": "sample",
       "file": "snp_tree_file",
       "highlightedId": null
     }
