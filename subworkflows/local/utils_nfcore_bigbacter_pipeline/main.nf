@@ -167,7 +167,7 @@ def create_sample_channel(row) {
     //    Reads
     // ===================================================
     // Check that at least one read type was provided
-    if( ! (fastq_1 && fastq_2) && ! sra && ! assembly ){ exit 1, "ERROR: Reads must be provided via the 'fastq_1' and 'fastq_2', 'sra', or 'assembly' columns for ${sample}." }
+    if( ! (fastq_1 && fastq_2) && ! sra && ! assembly && ! genbank ){ exit 1, "ERROR: Reads must be provided via the 'fastq_1' and 'fastq_2', 'sra', or 'assembly' columns for ${sample}." }
     // Check that multiple read options were not provided
     if( ((fastq_1 && fastq_2) && sra) ){ exit 1, "ERROR: Multiple read inputs provided - either fastq_1 & fastq_2 or sra" }
 
