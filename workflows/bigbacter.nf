@@ -59,7 +59,9 @@ workflow BIGBACTER {
 
     PREPARE(ch_samplesheet)
     ch_versions      = ch_versions.mix(PREPARE.out.versions)
-    ch_multiqc_files = ch_multiqc_files.mix(PREPARE.out.fastqc_zip.collect { it[1] })
+    ch_multiqc_files = ch_multiqc_files
+        .mix(PREPARE.out.fastqc_zip.collect { it[1] })
+        .mix(PREPARE.out.fastp_json.collect { it[1] })
 
     /* 
     =============================================================================================================================

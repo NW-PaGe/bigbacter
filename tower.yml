@@ -1,19 +1,23 @@
 reports:
-  "*/*/other/software_versions.yml":
-    display: "Software versions"
-  "*/*/*/*/summary/*_summary.*":
-    display: "Run summary"
-  # "*/*/*/*/figures/*":
-  #   display: "Figures"
-  "*/*/*/*/report/*":
-    display: "Reports"
-  "*/*/*/*/aln/*":
-    display: "Genome alignment files"
-  "*/*/*/*/var/*":
-    display: "Compressed Snippy files for each isolate"
-  "*/*/*/*/tree/*":
-    display: "Phylogenetic trees"
-  "*/*/*/*/dist/*":
-    display: "Genome distance metrics"
-  "*/*/*/*/qc/*":
-    display: "QC"
+  "**/summary/*":
+    display: "Summarry file (cluster)"
+  "**/report/*":
+    display: "Microreact report (cluster)"
+  "**/aln/*":
+    display: "Genome alignment file (cluster)"
+  "**/var/*":
+    display: "Snippy files (sample)"
+  "**/tree/*":
+    display: "Phylogenetic tree (cluster)"
+  "**/dist/*":
+    display: "Genome distance matrix (cluster)"
+  "**/qc/*":
+    display: "Quality Control file (cluster)"
+  "**/asm/*":
+    display: "Genome assembly (sample)"
+  "**/reads/*":
+    display: "Raw reads file (sample)"
+  "**/multiqc/*":
+    display: "MultiQC report (run)"
+  "**/pipeline_info/*":
+    display: "Pipeline info (run)"
