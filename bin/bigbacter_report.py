@@ -268,7 +268,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
         mh_dist_data = _list2map(_load_delim(mh_dist_file), key='')
         for k1, v1 in mh_dist_data.items():
             for k2 in v1:
-                mh_dist_data[k1][k2] = round(100 * (1.0 - float(v1[k2])), 1)
+                mh_dist_data[k1][k2] = round(100 * float(v1[k2]), 2)
 
         _dist2csv(mh_dist_data, outfile=mh_dist_out)
         LOGGER.info(f"Processed MinHash containment distance matrix from {mh_dist_file}")

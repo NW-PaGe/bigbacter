@@ -2,7 +2,9 @@
 // Push analysis results to database directory structure
 //
 
-include { FILES } from '../../../modules/local/push/files/main'
+include { FILES as TAXA_FILES    } from '../../../modules/local/push/files/main'
+include { FILES as CLUSTER_FILES } from '../../../modules/local/push/files/main'
+
 
 workflow PUSH {
     
@@ -79,7 +81,7 @@ workflow PUSH {
                 ref_path,
                 ref_meta,
                 snp_files,
-                report_files
+                report_files // sentinel - not actually pushed
             ]
                 .flatten()
                 .findAll { it } // Remove null values
@@ -93,9 +95,8 @@ workflow PUSH {
     =============================================================================================================================
     */
 
-    FILES(
-        ch_taxa.concat(ch_cluster)
-    )
+    TAXA_FILES( ch_taxa )
+    CLUSTER_FILES( ch_cluster )
     
     emit:
     versions = ch_versions // channel: [ path(versions.yml) ]

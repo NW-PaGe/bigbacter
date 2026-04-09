@@ -173,7 +173,7 @@
                       {
                         "type": "tab",
                         "id": "matrix-2",
-                        "name": "% Avg Genome Containment",
+                        "name": "% Avg Divergence",
                         "component": "Matrix"
                       }
                     ]
