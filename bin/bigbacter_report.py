@@ -174,6 +174,29 @@ def _dist2csv(data, outfile):
         
             writer.writerow(row)
 
+def _dist2csv_long(data, outfile):
+    """Convert distance matrix to long format with three columns: sample1, sample2, distance."""
+    samples = sorted(data.keys())
+    
+    with open(outfile, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=['sample1', 'sample2', 'distance'])
+        writer.writeheader()
+        
+        for i, s1 in enumerate(samples):
+            if s1 not in data:
+                continue
+            
+            for j, s2 in enumerate(samples):
+                # Only write the upper triangle (including diagonal)
+                if j >= i:
+                    dist = data[s1].get(s2, 0 if s1 == s2 else None)
+                    if dist is not None:
+                        writer.writerow({
+                            'sample1': s1,
+                            'sample2': s2,
+                            'distance': dist
+                        })
+
 def _find_file(indir: Path, pattern: str) -> Optional[Path]:
     """Find first file matching glob pattern in directory."""
     matches = list(indir.glob(pattern))
@@ -252,13 +275,18 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
     # ----------------------------
     # SNP distance matrix
     # ----------------------------
-    snp_dist_out = Path(outdir) / f"{args.prefix}_snp-dist{args.suffix}csv"
+    # Determine the naming convention based on recombination masking
+    dist_suffix = "masked" if args.recomb_masked else "unmasked"
+    snp_dist_out_wide = Path(outdir) / f"{args.prefix}_{dist_suffix}-dist_wide{args.suffix}csv"
+    snp_dist_out_long = Path(outdir) / f"{args.prefix}_{dist_suffix}-dist_long{args.suffix}csv"
+    
     if snp_dist_file:
         snp_dist_data = _list2map(_load_delim(snp_dist_file), key='name')
         _rename_reference(snp_dist_data, ref_name, depth=2)
-        _dist2csv(snp_dist_data, outfile=snp_dist_out)
+        _dist2csv(snp_dist_data, outfile=snp_dist_out_wide)
+        _dist2csv_long(snp_dist_data, outfile=snp_dist_out_long)
         _extend_dict(out, _find_links(snp_dist_data, args.strong_link, args.inter_link))
-        LOGGER.info(f"Processed SNP distance matrix from {snp_dist_file}")
+        LOGGER.info(f"Processed SNP distance matrix from {snp_dist_file} (wide and long formats)")
 
     # ----------------------------
     # MinHash containment distance
@@ -432,7 +460,8 @@ def main() -> None:
 Expected input directory structure:
   - samplesheet.csv (required)
   - summary.csv (SNP summary stats)
-  - dist_wide.csv (SNP distance matrix)
+  - dist_wide.csv (SNP distance matrix, wide format)
+  - dist_long.csv (SNP distance matrix, long format) - optional
   - core.aln.* (Newick tree file)
   - *.tsv.gz (K-mer distance matrix)
   - template.microreact (optional, for Microreact output)

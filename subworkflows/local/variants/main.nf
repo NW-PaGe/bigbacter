@@ -221,6 +221,8 @@ workflow VARIANTS {
     snp_files   = SNIPPY_SINGLE.out.results
     snp_summary = POLYCORE.out.csv
     snp_dist    = POLYCORE.out.dist_wide
+        .join(POLYCORE.out.dist_long)
+        .map { meta, dist_wide, dist_long -> [meta, [dist_wide, dist_long]] }
     snp_tree    = IQTREE.out.result
     versions    = ch_versions
 }

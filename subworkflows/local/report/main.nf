@@ -47,13 +47,20 @@ workflow REPORT {
             def meta_updated = meta + [recomb_masked: recomb_masked]
             
             // Collect all available files (filter out null values)
+            // Note: snp_dist is now a list [dist_wide, dist_long]
             def all_files = [
                 snp_summary,
-                snp_dist,
                 snp_tree,
                 ref_meta,
                 db_dist
             ].findAll { it }
+            
+            // Add dist files (may be a list)
+            if (snp_dist instanceof List) {
+                all_files.addAll(snp_dist)
+            } else if (snp_dist) {
+                all_files.add(snp_dist)
+            }
 
             [meta_updated, all_files]
         }
