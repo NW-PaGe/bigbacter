@@ -276,9 +276,9 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
     # SNP distance matrix
     # ----------------------------
     # Determine the naming convention based on recombination masking
-    dist_suffix = "masked" if args.recomb_masked else "unmasked"
-    snp_dist_out_wide = Path(outdir) / f"{args.prefix}_{dist_suffix}-dist_wide{args.suffix}csv"
-    snp_dist_out_long = Path(outdir) / f"{args.prefix}_{dist_suffix}-dist_long{args.suffix}csv"
+    dist_suffix = "_masked" if args.recomb_masked else ""
+    snp_dist_out_wide = Path(outdir) / f"{args.prefix}{dist_suffix}-dist_wide{args.suffix}csv"
+    snp_dist_out_long = Path(outdir) / f"{args.prefix}{dist_suffix}-dist_long{args.suffix}csv"
     
     if snp_dist_file:
         snp_dist_data = _list2map(_load_delim(snp_dist_file), key='name')
@@ -401,7 +401,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
         mr_map = {
             "summary_file": {"pane_id": "table-1", "file": summary_out},
             "snp_tree_file": {"pane_id": "tree-1", "file": snp_tree_out},
-            "snp_dist_file": {"pane_id": "matrix-1", "file": snp_dist_out},
+            "snp_dist_file": {"pane_id": "matrix-1", "file": snp_dist_out_wide},
             "mh_dist_file": {"pane_id": "matrix-2", "file": mh_dist_out},
         }
 
