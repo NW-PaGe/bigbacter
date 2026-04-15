@@ -1,7 +1,7 @@
 reports:
   "**/summary/*":
     display: "Summarry file (cluster)"
-  "**/report/*":
+  "**/reports/*":
     display: "Microreact report (cluster)"
   "**/aln/*":
     display: "Genome alignment file (cluster)"
