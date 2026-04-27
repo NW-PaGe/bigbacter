@@ -53,19 +53,8 @@ workflow CLASSIFY {
     */
 
     // Group samples by taxa for clustering
-    // FIXED: Check actual database state instead of relying on cached metadata
     ch_taxa_groups = ch_manifest_with_taxa
-        .map { data ->
-            // Check if this sample's signature already exists in the database
-            def sig_file = file(params.db) / data.meta.taxa / 'sig' / "${data.meta.id}.sig.gz"
-            def already_processed = sig_file.exists()
-            
-            [data, already_processed]
-        }
-        .filter { data, already_processed -> 
-            !already_processed  // Only keep samples that haven't been processed
-        }
-        .map { data, already_processed -> data }  // Remove the flag, keep the data
+        .filter { !it.meta.cluster }
         .map { [
             [taxa: it.meta.taxa], 
             it.assembly,
