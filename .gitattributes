@@ -1,2 +1,0 @@
-*.gdb filter=lfs diff=lfs merge=lfs -text
-*.gs filter=lfs diff=lfs merge=lfs -text
