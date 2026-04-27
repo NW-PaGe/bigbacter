@@ -56,13 +56,11 @@ workflow CLASSIFY {
     ch_taxa_groups = ch_manifest_with_taxa
         .filter { !it.meta.cluster }
         .map { [
-            [taxa: it.meta.taxa], 
-            it.assembly,
-            it.meta.timestamp
+            [taxa: it.meta.taxa, timestamp: it.meta.timestamp], 
+            it.assembly
         ] }
-        .groupTuple(by: 0, sort: true)
-        .map { meta, assemblies, timestamps -> 
-            meta.timestamp = timestamps.min()
+        .groupTuple(by: 0)
+        .map { meta, assemblies -> 
             def sig_db = file(params.db) / meta.taxa / 'sig'
             [meta, assemblies, sig_db.exists() ? sig_db : []]
         }
