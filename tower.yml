@@ -1,6 +1,8 @@
 reports:
   "**/summary/*":
-    display: "Summarry file (cluster)"
+    display: "Summary file (cluster)"
+  "**/*-summary.csv":
+    display: "Combined summary file (run)"
   "**/reports/*":
     display: "Microreact report (cluster)"
   "**/aln/*":
