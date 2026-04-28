@@ -14,7 +14,7 @@ process CLUSTER {
     path "versions.yml", emit: versions
 
     script:
-    tool = 'bigbacter_report.py'
+    tool = 'bigbacter_report_cluster.py'
     """
     ${tool} \\
         --timestamp "${meta.timestamp}" \\
@@ -25,7 +25,6 @@ process CLUSTER {
         --partition-distance ${params.partition_distance} \\
         ${ meta.recomb_masked ? "--recomb-masked" : '' } \\
         input/
-
 
     # version info
     cat <<-END_VERSIONS > versions.yml

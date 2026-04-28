@@ -3,6 +3,7 @@
 //
 
 include { CLUSTER } from '../../../modules/local/report/cluster/main'
+include { ALL     } from '../../../modules/local/report/all/main'
 
 workflow REPORT {
     
@@ -70,6 +71,21 @@ workflow REPORT {
         file(params.microreact_template)
     )
     ch_versions = ch_versions.mix(CLUSTER.out.versions.first())
+
+
+    /*
+    =============================================================================================================================
+        GENERATE COMBINED REPORT
+    =============================================================================================================================
+    */
+
+    ALL(
+        CLUSTER.out.summary.map{ meta, summary ->
+            def new_meta = [ timestamp: meta.timestamp ]
+            [new_meta, summary]
+        }
+        .groupTuple(by: 0)
+    )
 
     emit:
     report   = CLUSTER.out.report  // channel: [ val(meta), path(report_files) ]
