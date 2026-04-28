@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# bigbacter_report.py
+# bigbacter_report_cluster.py
 # Author: Jared Johnson, jared.johnson@doh.wa.gov
 
 

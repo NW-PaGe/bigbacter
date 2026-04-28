@@ -41,8 +41,8 @@ workflow CLASSIFY {
                 .map { [it.meta, it] }
         )
         .map { meta, taxa, data -> 
-            data.meta.taxa = taxa
-            return data 
+            def new_meta = data.meta + [taxa: taxa]
+            return data + [meta: new_meta]
         }
         .concat(ch_manifest.filter { it.meta.taxa })
 
@@ -84,8 +84,8 @@ workflow CLASSIFY {
         .map { [it.meta.id.toString(), it] }
         .join(ch_clusters, by: 0)
         .map { id, data, cluster ->
-            data.meta.cluster = cluster
-            return data
+            def new_meta = data.meta + [cluster: cluster]
+            return data + [meta: new_meta]
         }
         .concat(ch_manifest_with_taxa.filter { it.meta.cluster })
 
