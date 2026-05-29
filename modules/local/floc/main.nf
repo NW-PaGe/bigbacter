@@ -10,6 +10,8 @@ process FLOC {
     tuple val(meta), path("sigs/*"),                 emit: sigs
     tuple val(meta), path("dist/*"),                 emit: dist
     tuple val(meta), path("global_containment.csv"), emit: qc
+    tuple val(meta), path("pcoa.html"),              emit: plot, optional: true
+
 
     path "versions.yml", emit: versions
 
@@ -27,6 +29,7 @@ process FLOC {
         --min-hash-freq ${params.clust_min_hash_freq} \\
         ${params.clust_ignore_qc ? '--ignore-qc' : ''} \\
         ${params.clust_overwrite ? '--overwrite' : ''} \\
+        ${params.clust_plot ? '--plot' : ''} \\
         ${args} \\
         input/*/
 
