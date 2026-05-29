@@ -96,26 +96,26 @@ def _list2map(data: List[Dict[str, Any]], key: str) -> Dict[str, Dict[str, Any]]
         if key in row and row[key] not in (None, "")
     }
 
-def _sniff_open(path):
-    if path.suffix == '.gz':
+def _get_delimiter(path: Path) -> str:
+    """Determine delimiter from file extension."""
+    suffixes = path.suffixes  # e.g. ['.tsv', '.gz'] or ['.csv']
+    for s in suffixes:
+        if s in ('.tsv', '.txt'):
+            return '\t'
+        if s == '.csv':
+            return ','
+    return ','  # default fallback
+
+def _sniff_open(path: Path):
+    if '.gz' in path.suffixes:
         return gzip.open(path, 'rt', encoding='utf-8-sig')
     else:
         return open(path, 'r', encoding='utf-8-sig')
-    
-def _sniff_delimiter(path):
-    # Robust delimiter sniff with fallback
-    sample = path.read(2048)
-    path.seek(0)
-    try:
-        sniffer = csv.Sniffer()
-        dialect = sniffer.sniff(sample)
-        return dialect.delimiter
-    except Exception:
-        return ','
-    
+
 def _load_delim(path: Path) -> List[Dict[str, str]]:
+    delimiter = _get_delimiter(path)
     with _sniff_open(path) as f:
-        return list(csv.DictReader(f, delimiter=_sniff_delimiter(f)))    
+        return list(csv.DictReader(f, delimiter=delimiter))
 
 def _find_links(data, strong_thresh: float, inter_thresh: float) -> Dict[str, Dict[str, Any]]:
     res = {}
@@ -155,23 +155,19 @@ def _partition_tree(D: np.ndarray, eps: float, min_samples: int = 1) -> List[int
     return clusters
 
 def _dist2csv(data, outfile):
-    # Collect all second-level keys
     samples = sorted(data.keys())
 
+    # Collect ALL column keys across all rows (inner keys may differ from outer)
+    all_cols = sorted({col for row in data.values() for col in row.keys()})
+
     with open(outfile, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=[''] + samples)
+        writer = csv.DictWriter(f, fieldnames=[''] + all_cols, extrasaction='ignore')
         writer.writeheader()
 
         for s in samples:
-
-            if s not in data:
-                continue
-
             row = data[s].copy()
-            if s not in row:
-                row[s] = 0
+            row[s] = row.get(s, 0)   # self-distance = 0
             row[''] = s
-        
             writer.writerow(row)
 
 def _find_file(indir: Path, pattern: str) -> Optional[Path]:
@@ -266,9 +262,19 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
     mh_dist_out = Path(outdir) / f"{args.prefix}_db-dist{args.suffix}csv"
     if mh_dist_file:
         mh_dist_data = _list2map(_load_delim(mh_dist_file), key='')
+        LOGGER.info(f"mh_dist_data keys (first 5): {list(mh_dist_data.keys())[:5]}")
+        LOGGER.info(f"out keys (first 5): {list(out.keys())[:5]}")
+        LOGGER.info(f"mh_dist_data sample inner keys (first row): {list(list(mh_dist_data.values())[0].keys())[:5] if mh_dist_data else 'EMPTY'}")
         for k1, v1 in mh_dist_data.items():
             for k2 in v1:
                 mh_dist_data[k1][k2] = round(100 * float(v1[k2]), 2)
+
+        # Filter to only samples that will appear in the summary
+        mh_dist_data = {
+            k1: {k2: v for k2, v in v1.items() if k2 in out}
+            for k1, v1 in mh_dist_data.items()
+            if k1 in out
+        }
 
         _dist2csv(mh_dist_data, outfile=mh_dist_out)
         LOGGER.info(f"Processed MinHash containment distance matrix from {mh_dist_file}")
