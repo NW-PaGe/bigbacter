@@ -33,7 +33,7 @@ workflow CLASSIFY {
         .taxa
         .splitCsv(header: true)
         .map { meta, data -> 
-            [meta, data["predicted.name"].replace(" ", "_")] 
+            [meta, data["predicted.name"].replaceAll("[^a-zA-Z0-9]", "_")]
         }
         .join(
             ch_manifest
