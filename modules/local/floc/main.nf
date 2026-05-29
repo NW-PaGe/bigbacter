@@ -10,7 +10,8 @@ process FLOC {
     tuple val(meta), path("sigs/*"),                 emit: sigs
     tuple val(meta), path("dist/*"),                 emit: dist
     tuple val(meta), path("global_containment.csv"), emit: qc
-    tuple val(meta), path("pcoa.html"),              emit: plot, optional: true
+    tuple val(meta), path("nj_tree.html"),           emit: plot, optional: true
+    tuple val(meta), path("nj_tree.nwk"),            emit: tree, optional: true
 
 
     path "versions.yml", emit: versions
