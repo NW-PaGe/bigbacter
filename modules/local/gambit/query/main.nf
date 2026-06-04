@@ -8,9 +8,8 @@ process GAMBIT_QUERY {
         'quay.io/biocontainers/gambit:1.1.0--py312h0fa9677_2' }"
     
     input:
-    tuple val(meta), path(assembly)
-    path db_files, stageAs: 'db'
-
+    tuple val(meta), path(assembly), path(db_files, stageAs: 'db')
+    
     output:
     tuple val(meta), path("*_gambit.csv"), emit: taxa
     path "versions.yml"                  , emit: versions

@@ -82,9 +82,15 @@
       "description": "",
       "default": "",
       "properties": {
-        "gambit_db": {
+        "gambit_gdb": {
           "type": "string",
-          "default": "${projectDir}/assets/databases/gambit",
+          "default": "https://storage.googleapis.com/jlumpe-gambit/public/databases/refseq-curated/1.0/gambit-refseq-curated-1.0.gdb",
+          "description": "Gambit database for taxonomic classification",
+          "fa_icon": "fas fa-folder"
+        },
+        "gambit_gs": {
+          "type": "string",
+          "default": "https://storage.googleapis.com/jlumpe-gambit/public/databases/refseq-curated/1.0/gambit-refseq-curated-1.0.gs",
           "description": "Gambit database for taxonomic classification",
           "fa_icon": "fas fa-folder"
         },
