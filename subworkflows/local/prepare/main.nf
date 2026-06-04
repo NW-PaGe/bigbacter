@@ -70,7 +70,13 @@ workflow PREPARE {
     if (params.max_reads) {
         ch_reads
             .map { meta, reads ->
-                def read_count = reads[0].countFastq() * 2
+                def read_count
+                try {
+                    read_count = reads[0].countFastq() * 2
+                } catch (Exception e) {
+                    log.warn "${meta.id}: Failed to count reads - will attempt downsampling anyway!"
+                    read_count = params.max_reads + 1
+                }
                 [meta: meta, reads: reads, n: read_count]
             }
             .branch {
