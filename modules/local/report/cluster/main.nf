@@ -9,13 +9,14 @@ process CLUSTER {
     output:
     tuple val(meta), path("*.microreact"), emit: report
     tuple val(meta), path("*_summary.*"),  emit: summary
-    tuple val(meta), path("*-dist.*"),     emit: dist
+    tuple val(meta), path("*-dist-*"),     emit: dist
     tuple val(meta), path("*.nwk"),        emit: tree, optional: true
     path "versions.yml", emit: versions
 
     script:
     tool = 'bigbacter_report_cluster.py'
     """
+    
     ${tool} \\
         --timestamp "${meta.timestamp}" \\
         --taxa "${meta.taxa}" \\

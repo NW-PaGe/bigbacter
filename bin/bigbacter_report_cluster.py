@@ -23,7 +23,7 @@ from bigbacter_utils import logging_config, get_assembly_stem
 LOGGER = logging_config()
 
 COL_ORDER = [
-    'sample', 'run', 'status', 'included', 
+    'id', 'run', 'status', 'included', 
     'taxa', 'cluster', 'partition', 'strong_links', 
     'inter_links', 'genome_fraction', 'core_fraction', 
     'length', 'masked', 'missing', 'mixed', 'variants', 
@@ -170,6 +170,22 @@ def _dist2csv(data, outfile):
             row[''] = s
             writer.writerow(row)
 
+def _dist2csv_long(data, outfile, value_col: str = 'dist') -> None:
+    """Write a dict-of-dicts distance matrix in long (tidy) format.
+
+    Output columns: id1, id2, <value_col>
+    Self-distances (diagonal) are emitted as 0 when not present in the data.
+    """
+    samples = sorted(data.keys())
+    with open(outfile, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(['id1', 'id2', value_col])
+        for s1 in samples:
+            row = data[s1]
+            for s2 in sorted(set(row.keys()) | {s1}):
+                val = row.get(s2, 0) if s2 == s1 else row.get(s2)
+                writer.writerow([s1, s2, val])
+
 def _find_file(indir: Path, pattern: str) -> Optional[Path]:
     """Find first file matching glob pattern in directory."""
     matches = list(indir.glob(pattern))
@@ -248,18 +264,21 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
     # ----------------------------
     # SNP distance matrix
     # ----------------------------
-    snp_dist_out = Path(outdir) / f"{args.prefix}_snp-dist{args.suffix}csv"
+    snp_dist_out = Path(outdir) / f"{args.prefix}_snp-dist-wide{args.suffix}csv"
+    snp_dist_long_out = Path(outdir) / f"{args.prefix}_snp-dist-long{args.suffix}csv"
     if snp_dist_file:
         snp_dist_data = _list2map(_load_delim(snp_dist_file), key='name')
         _rename_reference(snp_dist_data, ref_name, depth=2)
         _dist2csv(snp_dist_data, outfile=snp_dist_out)
+        _dist2csv_long(snp_dist_data, outfile=snp_dist_long_out)
         _extend_dict(out, _find_links(snp_dist_data, args.strong_link, args.inter_link))
         LOGGER.info(f"Processed SNP distance matrix from {snp_dist_file}")
 
     # ----------------------------
     # MinHash containment distance
     # ----------------------------
-    mh_dist_out = Path(outdir) / f"{args.prefix}_db-dist{args.suffix}csv"
+    mh_dist_out = Path(outdir) / f"{args.prefix}_mh-dist-wide{args.suffix}csv"
+    mh_dist_long_out = Path(outdir) / f"{args.prefix}_mh-dist-long{args.suffix}csv"
     if mh_dist_file:
         mh_dist_data = _list2map(_load_delim(mh_dist_file), key='')
         LOGGER.info(f"mh_dist_data keys (first 5): {list(mh_dist_data.keys())[:5]}")
@@ -277,8 +296,8 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
         }
 
         _dist2csv(mh_dist_data, outfile=mh_dist_out)
+        _dist2csv_long(mh_dist_data, outfile=mh_dist_long_out, value_col='distance')
         LOGGER.info(f"Processed MinHash containment distance matrix from {mh_dist_file}")
-
 
     # ----------------------------
     # Tree + partitions
@@ -328,7 +347,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
 
     for sample_id, sample_data in out.items():
         rec: Dict[str, Any] = {
-            "sample": ref_name if sample_id == "Reference" else sample_id,
+            "id": ref_name if sample_id == "Reference" else sample_id,
             "status": "new" if sample_id in samples else "old",
             "run": timestamp_epoch,
             "taxa": args.taxa,

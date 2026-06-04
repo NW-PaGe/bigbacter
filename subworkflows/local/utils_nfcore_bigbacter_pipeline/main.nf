@@ -166,9 +166,8 @@ def create_sample_channel(row) {
     // ===================================================
     //    Taxonomy
     // ===================================================
-    // Check that multiple assembly options were not provided
-    if( ! taxa || taxa == null ){ exit 1, "ERROR: Must specify taxonomy!" }
-    taxa = taxa.replaceAll("[^a-zA-Z0-9]", "_")
+    // Clean up taxonomy string
+    taxa = taxa ? taxa.replaceAll("[^a-zA-Z0-9]", "_") : null
 
     // ===================================================
     //    Reads
@@ -185,8 +184,8 @@ def create_sample_channel(row) {
     if( assembly && genbank ){ exit 1, "ERROR: Multiple assembly inputs provided - either assembly or genbank" }
     
     //// Build output
-    out = [ 
-        meta: sample + ['single_end': false, 'taxa': taxa.replace(" ", "_"), 'cluster': cluster],
+    def out = [ 
+        meta: sample + ['single_end': false, 'taxa': taxa, 'cluster': cluster],
         reads: [ fastq_1, fastq_2 ], 
         sra: sra,
         assembly: assembly,

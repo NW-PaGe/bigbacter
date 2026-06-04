@@ -10,7 +10,7 @@ process POLYCORE {
     tuple val(meta), path("full.csv"),      emit: full_csv
     tuple val(meta), path("summary.csv"),   emit: csv
     tuple val(meta), path("fconst.txt"),    emit: fconst
-    tuple val(meta), path("dist_long.csv"), emit: dist_long
+    // tuple val(meta), path("dist_long.csv"), emit: dist_long
     tuple val(meta), path("dist_wide.csv"), emit: dist_wide
     tuple val(meta), path("*.html"),        emit: plot, optional: true
     path "versions.yml",                    emit: versions

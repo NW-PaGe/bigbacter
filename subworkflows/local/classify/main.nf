@@ -2,7 +2,8 @@
 // Taxonomic classification and cluster assignment workflow
 //
 
-include { GAMBIT_QUERY } from '../../../modules/local/gambit/main'
+include { GAMBIT_STAGE } from '../../../modules/local/gambit/stage/main'
+include { GAMBIT_QUERY } from '../../../modules/local/gambit/query/main'
 include { FLOC         } from '../../../modules/local/floc/main'
 
 workflow CLASSIFY {
@@ -18,12 +19,20 @@ workflow CLASSIFY {
     =============================================================================================================================
     */
 
+    ch_needs_taxa = ch_manifest
+        .filter { !it.meta.taxa }
+        .map { [it.meta, it.assembly] }
+
+    GAMBIT_STAGE (
+        ch_needs_taxa.map{ meta, asm -> meta.id }.collect(),
+        params.gambit_gdb,
+        params.gambit_gs
+    )
+
     // Predict taxa for samples without pre-assigned taxonomy
-    GAMBIT_QUERY(
-        ch_manifest
-            .filter { !it.meta.taxa }
-            .map { [it.meta, it.assembly] },
-        params.gambit_db
+    GAMBIT_QUERY (
+        ch_needs_taxa.combine(GAMBIT_STAGE.out.db),
+        
     )
     ch_versions = ch_versions.mix(GAMBIT_QUERY.out.versions.first())
     
