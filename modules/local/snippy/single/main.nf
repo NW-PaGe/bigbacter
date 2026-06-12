@@ -19,6 +19,7 @@ process SNIPPY_SINGLE {
     asm_gz_arg    = reads ? "" : "gzip -d ${assembly}"
     reads_arg     = reads ? "--R1 ${reads[0]} --R2 ${reads[1]}" : "--ctgs ${assembly.baseName}"
     subsample_arg = reads ? "--subsample ${downsample_rate}" : ""
+    cleanup_arg   = params.keep_bam ? "" : "--cleanup"
     
     """
     # extract reference
@@ -34,6 +35,7 @@ process SNIPPY_SINGLE {
         ${subsample_arg} \\
         --outdir ${meta.id} \\
         --cpus ${task.cpus} \\
+        ${cleanup_arg} \\
         ${args}
 
     # compress output
