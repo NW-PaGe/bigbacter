@@ -102,8 +102,8 @@
         }
       }
     },
-    "new_group_1": {
-      "title": "New Group 1",
+    "clustering_options": {
+      "title": "Clustering Options",
       "type": "object",
       "description": "",
       "default": "",
@@ -198,6 +198,12 @@
           "default": true,
           "description": "Perform recombination masking, in addition to standard variant detection",
           "fa_icon": "fas fa-chart-pie"
+        },
+        "keep_bam": {
+          "type": "boolean",
+          "default": false,
+          "description": "Keep the bam file created during variant calling. Will dramatically increase the database size.",
+          "fa_icon": "fas fa-users-cog"
         }
       }
     },
@@ -409,7 +415,7 @@
       "$ref": "#/$defs/assets"
     },
     {
-      "$ref": "#/$defs/new_group_1"
+      "$ref": "#/$defs/clustering_options"
     },
     {
       "$ref": "#/$defs/reference_selection"
