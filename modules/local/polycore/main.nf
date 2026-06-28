@@ -17,7 +17,6 @@ process POLYCORE {
 
     script:
     def args = task.ext.args ?: ''
-    tool = 'bigbacter_snp_stats.py'
     """
     polycore \\
         --min-gf ${params.min_genome_fraction} \\
@@ -25,9 +24,6 @@ process POLYCORE {
         ${mask ? "--mask ${mask}" : ''} \\
         ${args} \\
         ${aln}
-
-    # Add SNP stats to summary.csv
-    ${tool}
 
     # version info
     cat <<-END_VERSIONS > versions.yml
