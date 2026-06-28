@@ -20,8 +20,6 @@ with open(MATRIX) as f:
             col_name = col_names[i - 1]
             if col_name == name:          # skip diagonal
                 continue
-            if col_name == "Reference":   # skip reference column
-                continue
             try:
                 values.append(int(row[i]))
             except ValueError:
@@ -44,8 +42,6 @@ try:
 
     new_fields = existing_fields + [c for c in stat_cols if c not in existing_fields]
     for row in rows:
-        for col in stat_cols:
-            row[col] = ""  # clear old values before updating
         if row["name"] in stats:
             row.update(stats[row["name"]])
 
