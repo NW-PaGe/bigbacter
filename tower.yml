@@ -1,6 +1,6 @@
 reports:
   "**/summary/*":
-    display: "Summarry file (cluster)"
+    display: "Summary file (cluster)"
   "**/report/*":
     display: "Microreact report (cluster)"
   "**/aln/*":
@@ -21,3 +21,6 @@ reports:
     display: "MultiQC report (run)"
   "**/pipeline_info/*":
     display: "Pipeline info (run)"
+  "*/*/*-summary.csv":
+    display: "Run summary (run)"
+    
