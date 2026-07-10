@@ -244,7 +244,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
             ref_meta = load_json(ref_meta_file)
             ref_origin = get_assembly_stem(ref_meta.get('name', '')).strip()
             if ref_origin:
-                ref_name = f"{ref_name}_[{ref_origin}]"
+                ref_name = f"{ref_name}_{ref_origin}"
         except:
             LOGGER.warning("Failed to load reference metadata")
 
@@ -330,7 +330,13 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
                 except Exception:
                     pass
 
-        Phylo.write(tree, snp_tree_out, "newick")
+        # Write Newick without Biopython's automatic single-quote wrapping
+        from io import StringIO
+        _buf = StringIO()
+        Phylo.write(tree, _buf, "newick")
+        _nwk_str = _buf.getvalue().replace("'", "")
+        with open(snp_tree_out, "w") as _fh:
+            _fh.write(_nwk_str)
 
         labels, dist = _patristic_distance_matrix(tree)
 
