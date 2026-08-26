@@ -1,6 +1,6 @@
 {
-    "name": "doh-jdj0303/bigbacter",
-    "homePage": "https://github.com/doh-jdj0303/bigbacter",
+    "name": "nw-page/bigbacter",
+    "homePage": "https://github.com/nw-page/bigbacter",
     "repos": {
         "https://github.com/nf-core/modules.git": {
             "modules": {

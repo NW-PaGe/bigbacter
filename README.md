@@ -1,91 +1,40 @@
-# doh-jdj0303/bigbacter
+[![](https://github.com/NW-PaGe/bigbacter-docs/raw/a0184ebe0bf6341508ca483f587a5ede6e6e0c13/assets/media/bigbacter_logo.png)](https://github.com/NW-PaGe/bigbacter-docs/blob/a0184ebe0bf6341508ca483f587a5ede6e6e0c13/assets/media/bigbacter_logo.png)
 
-[![Open in GitHub Codespaces](https://img.shields.io/badge/Open_In_GitHub_Codespaces-black?labelColor=grey&logo=github)](https://github.com/codespaces/new/doh-jdj0303/bigbacter)
-[![GitHub Actions CI Status](https://github.com/doh-jdj0303/bigbacter/actions/workflows/nf-test.yml/badge.svg)](https://github.com/doh-jdj0303/bigbacter/actions/workflows/nf-test.yml)
-[![GitHub Actions Linting Status](https://github.com/doh-jdj0303/bigbacter/actions/workflows/linting.yml/badge.svg)](https://github.com/doh-jdj0303/bigbacter/actions/workflows/linting.yml)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
-[![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)
+# BigBacter: Bacterial Genomic Surveillance
 
-[![Nextflow](https://img.shields.io/badge/version-%E2%89%A525.04.0-green?style=flat&logo=nextflow&logoColor=white&color=%230DC09D&link=https%3A%2F%2Fnextflow.io)](https://www.nextflow.io/)
-[![nf-core template version](https://img.shields.io/badge/nf--core_template-3.5.1-green?style=flat&logo=nfcore&logoColor=white&color=%2324B064&link=https%3A%2F%2Fnf-co.re)](https://github.com/nf-core/tools/releases/tag/3.5.1)
-[![run with conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)
-[![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
-[![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
-[![Launch on Seqera Platform](https://img.shields.io/badge/Launch%20%F0%9F%9A%80-Seqera%20Platform-%234256e7)](https://cloud.seqera.io/launch?pipeline=https://github.com/doh-jdj0303/bigbacter)
+## Key Features
 
-## Introduction
+BigBacter is a bacterial genomic surveillance pipeline that can:
 
-**doh-jdj0303/bigbacter** is a bioinformatics pipeline that ...
+<div style="padding: 1em; margin: 1em 0;">
 
-<!-- TODO nf-core:
-   Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-   major pipeline sections and the types of output it produces. You're giving an overview to someone new
-   to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
--->
+🧬 <strong>Iterative clustering</strong> - cluster assignments stay consistent across runs using a per-sample sourmash database that expands automatically with each new submission<br>
+🧬 <strong>Soft-core phylogenomics</strong> - retains substantially more phylogenetic signal than strict-core approaches by tolerating a configurable level of missing data<br>
+🧬 <strong>Automated reference selection</strong> - selects the most representative assembly per cluster using k-mer containment and assembly quality scoring; reuses the same reference on subsequent runs for consistent SNP distances<br>
+🧬 <strong>Dual distance metrics</strong> - reports both core-genome SNP distances and whole-genome containment scores to capture both SNP-level and accessory genome variation<br>
 
-<!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
-     workflows use the "tube map" design for that. See https://nf-co.re/docs/guidelines/graphic_design/workflow_diagrams#examples for examples.   -->
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+</div>  
 
-## Usage
+BigBacter accepts reads, assemblies, or **SRA and GenBank accessions**, and fills in whatever is missing — assembling, subsampling, and assigning species-level taxonomy along the way. Because clustering is k-mer based and stored per-sample, **no reference database has to be built before a new species can be run**, and a run can start with as little as a single isolate. BigBacter is designed to run downstream of a workflow with robust assembly QC, such as [PHoeNIx](https://github.com/CDCgov/phoenix), [TheiaProk](https://public-health-bacterial-genomics-theiagen.readthedocs.io/en/latest/theiaprok.html), or [Bactopia](https://github.com/bactopia/bactopia).
 
-> [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
+## Pipeline Overview
 
-<!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
+![](https://nw-page.github.io/bigbacter-docs/docs/v2.0/media/bigbacter-v2_0-nw-page.png)
 
-First, prepare a samplesheet with your input data that looks as follows:
+## More Information:
 
-`samplesheet.csv`:
+See the [docs](https://nw-page.github.io/bigbacter-docs/docs/v2.0/) for more information.
 
-```csv
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
-```
+## Acknowledgements
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
+**BigBacter would not be possible without the following people:**
 
--->
+- Marcela Torres (WA DOH, Molecular Epidemiology)
+- Dahlia Walters (WA DOH, Molecular Epidemiology)
+- Holly Halstead (WA DOH, Bioinformatics)
+- Kara Moser (CDC, CEMB)
+- Jill Hagey (CDC, CEMB)
+- Frank Bao (CDC, CEMB)
+- Samantha Chill (ODHL)
 
-Now, you can run the pipeline using:
-
-<!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
-
-```bash
-nextflow run doh-jdj0303/bigbacter \
-   -profile <docker/singularity/.../institute> \
-   --input samplesheet.csv \
-   --outdir <OUTDIR>
-```
-
-> [!WARNING]
-> Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
-
-## Credits
-
-doh-jdj0303/bigbacter was originally written by Jared Johnson.
-
-We thank the following people for their extensive assistance in the development of this pipeline:
-
-<!-- TODO nf-core: If applicable, make list of people who have also contributed -->
-
-## Contributions and Support
-
-If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
-
-## Citations
-
-<!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi and badge at the top of this file. -->
-<!-- If you use doh-jdj0303/bigbacter for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
-
-<!-- TODO nf-core: Add bibliography of tools and data used in your pipeline -->
-
-An extensive list of references for the tools used by the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file.
-
-This pipeline uses code and infrastructure developed and maintained by the [nf-core](https://nf-co.re) community, reused here under the [MIT license](https://github.com/nf-core/tools/blob/main/LICENSE).
-
-> **The nf-core framework for community-curated bioinformatics pipelines.**
->
-> Philip Ewels, Alexander Peltzer, Sven Fillinger, Harshil Patel, Johannes Alneberg, Andreas Wilm, Maxime Ulysse Garcia, Paolo Di Tommaso & Sven Nahnsen.
->
-> _Nat Biotechnol._ 2020 Feb 13. doi: [10.1038/s41587-020-0439-x](https://dx.doi.org/10.1038/s41587-020-0439-x).
+BigBacter was originally written by Jared Johnson for the Washington State Department of Health.

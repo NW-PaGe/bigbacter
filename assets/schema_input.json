@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/DOH-JDJ0303/bigbacter-nf/master/assets/schema_input.json",
-    "title": "DOH-JDJ0303/bigbacter-nf pipeline - params.input schema",
+    "title": "DOH-JDJ0303/bigbacter-nf nw-page - params.input schema",
     "description": "Schema for the file provided with params.input",
     "type": "array",
     "items": {

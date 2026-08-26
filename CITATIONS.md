@@ -1,4 +1,4 @@
-# doh-jdj0303/bigbacter: Citations
+# nw-page/bigbacter: Citations
 
 ## [nf-core](https://pubmed.ncbi.nlm.nih.gov/32055031/)
 
