@@ -24,17 +24,3 @@ BigBacter accepts reads, assemblies, or **SRA and GenBank accessions**, and fill
 ## More Information:
 
 See the [docs](https://nw-page.github.io/bigbacter-docs/docs/v2.0/) for more information.
-
-## Acknowledgements
-
-**BigBacter would not be possible without the following people:**
-
-- Marcela Torres (WA DOH, Molecular Epidemiology)
-- Dahlia Walters (WA DOH, Molecular Epidemiology)
-- Holly Halstead (WA DOH, Bioinformatics)
-- Kara Moser (CDC, CEMB)
-- Jill Hagey (CDC, CEMB)
-- Frank Bao (CDC, CEMB)
-- Samantha Chill (ODHL)
-
-BigBacter was originally written by Jared Johnson for the Washington State Department of Health.
