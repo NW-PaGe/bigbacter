@@ -25,7 +25,7 @@ include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_bigb
 //
 // WORKFLOW: Run main analysis pipeline depending on type of input
 //
-workflow DOHJDJ0303_BIGBACTER {
+workflow NWPAGE_BIGBACTER {
 
     take:
     samplesheet // channel: samplesheet read in from --input
@@ -68,7 +68,7 @@ workflow {
     //
     // WORKFLOW: Run main workflow
     //
-    DOHJDJ0303_BIGBACTER (
+    NWPAGE_BIGBACTER (
         PIPELINE_INITIALISATION.out.samplesheet
     )
     //
@@ -81,7 +81,7 @@ workflow {
         params.outdir,
         params.monochrome_logs,
         params.hook_url,
-        DOHJDJ0303_BIGBACTER.out.multiqc_report
+        NWPAGE_BIGBACTER.out.multiqc_report
     )
 }
 
