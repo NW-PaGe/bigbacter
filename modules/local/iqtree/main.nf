@@ -18,7 +18,7 @@ process IQTREE {
     treefile = "${meta.n > 4 ? '*.contree' : '*.treefile'}"
     """
     # run IQTREE2
-    iqtree2 \\
+    iqtree3 \\
         -s ${aln} \\
         -fconst \$(cat ${const_sites}) \\
         -T ${task.cpus} \\
@@ -28,7 +28,7 @@ process IQTREE {
     #### VERSION INFO ####
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        iqtree2: \$(iqtree2 --version | head -n 1 | cut -f 4  -d ' ')
+        iqtree: \$(iqtree3 --version 2>&1 | head -n 1 | sed 's/^IQ-TREE multicore version //; s/ .*//')
     END_VERSIONS
     """
 }

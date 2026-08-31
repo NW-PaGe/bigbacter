@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/doh-jdj0303/bigbacter/master/nextflow_schema.json",
-  "title": "doh-jdj0303/bigbacter pipeline parameters",
+  "$id": "https://raw.githubusercontent.com/nw-page/bigbacter/master/nextflow_schema.json",
+  "title": "nw-page/bigbacter pipeline parameters",
   "description": "Bacterial surveillance pipeline.",
   "type": "object",
   "$defs": {
