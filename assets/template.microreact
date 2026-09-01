@@ -1,0 +1,293 @@
+{
+  "charts": {
+    "chart-1": {
+      "controls": true,
+      "interpolate": "linear",
+      "seriesStacking": "stacked",
+      "xAxisLabelLimit": 120,
+      "yAxisLabelLimit": 30,
+      "title": "Progressive Core Genome Fraction",
+      "paneId": "chart-1",
+      "type": "custom",
+      "spec": "{\n  \"$schema\": \"https://vega.github.io/schema/vega-lite/v5.json\",\n  \"autosize\": {\n    \"type\": \"fit-x\",\n    \"resize\": true,\n    \"contains\": \"padding\"\n  },\n  \"width\": \"container\",\n  \"height\": 300,\n  \"config\": {\n    \"axis\": {\n      \"labelFontSize\": 12,\n      \"titleFontSize\": 14,\n      \"titlePadding\": 10,\n      \"grid\": true,\n      \"gridColor\": \"#e0e0e0\",\n      \"gridOpacity\": 0.5,\n      \"domain\": false,\n      \"tickColor\": \"#666666\"\n    },\n    \"legend\": {\n      \"labelFontSize\": 12,\n      \"titleFontSize\": 14,\n      \"symbolSize\": 100\n    },\n    \"header\": {\n      \"labelFontSize\": 12,\n      \"titleFontSize\": 14\n    },\n    \"title\": {\n      \"fontSize\": 16,\n      \"fontWeight\": \"bold\",\n      \"anchor\": \"start\",\n      \"offset\": 10\n    },\n    \"view\": {\n      \"stroke\": \"transparent\"\n    },\n    \"background\": \"#fafafa\"\n  },\n  \"data\": {\n    \"name\": \"table\"\n  },\n  \"transform\": [\n    {\n      \"calculate\": \"toNumber(datum.core_fraction)\",\n      \"as\": \"core_fraction_num\"\n    },\n    {\n      \"calculate\": \"toNumber(datum.genome_fraction)\",\n      \"as\": \"genome_fraction_num\"\n    },\n    {\n      \"window\": [\n        {\n          \"op\": \"row_number\",\n          \"as\": \"order\"\n        }\n      ],\n      \"sort\": [\n        {\n          \"field\": \"genome_fraction_num\",\n          \"order\": \"descending\"\n        }\n      ]\n    }\n  ],\n  \"mark\": {\n    \"type\": \"line\",\n    \"point\": {\n      \"size\": 80,\n      \"filled\": true,\n      \"strokeWidth\": 1.5,\n      \"stroke\": \"white\"\n    },\n    \"strokeWidth\": 2.5,\n    \"color\": \"#2E86AB\",\n    \"interpolate\": \"monotone\"\n  },\n  \"encoding\": {\n    \"x\": {\n      \"field\": \"id\",\n      \"type\": \"nominal\",\n      \"sort\": {\n        \"field\": \"genome_fraction_num\",\n        \"op\": \"mean\",\n        \"order\": \"descending\"\n      },\n      \"axis\": {\n        \"title\": \"Sample (ordered by genome fraction)\",\n        \"labelAngle\": -45,\n        \"labelAlign\": \"right\",\n        \"labelBaseline\": \"top\",\n        \"labelPadding\": 5,\n        \"titlePadding\": 15\n      }\n    },\n    \"y\": {\n      \"field\": \"core_fraction_num\",\n      \"type\": \"quantitative\",\n      \"scale\": {\n        \"zero\": false,\n        \"nice\": true\n      },\n      \"axis\": {\n        \"title\": \"Core fraction\"\n      }\n    },\n    \"order\": {\n      \"field\": \"order\",\n      \"type\": \"ordinal\"\n    },\n    \"tooltip\": [\n      {\n        \"field\": \"id\",\n        \"type\": \"nominal\",\n        \"title\": \"Sample\"\n      },\n      {\n        \"field\": \"core_fraction_num\",\n        \"type\": \"quantitative\",\n        \"title\": \"Core fraction\",\n        \"format\": \".3f\"\n      },\n      {\n        \"field\": \"genome_fraction_num\",\n        \"type\": \"quantitative\",\n        \"title\": \"Genome fraction\",\n        \"format\": \".3f\"\n      }\n    ]\n  }\n}"}
+  },
+  "datasets": {
+    "dataset-1": {
+      "id": "dataset-1",
+      "file": "summary_file",
+      "idFieldName": "id"
+    }
+  },
+  "files": {
+    "summary_file": {
+      "blob": "",
+      "format": "text/csv",
+      "id": "summary_file",
+      "name": "no_summary_file",
+      "size": 1891,
+      "type": "data"
+    },
+    "snp_tree_file": {
+      "blob": "",
+      "format": "text/x-nh",
+      "id": "snp_tree_file",
+      "name": "no_snp_tree_file",
+      "size": 180,
+      "type": "tree"
+    },
+    "snp_dist_file": {
+      "blob": "",
+      "format": "text/csv",
+      "id": "snp_dist_file",
+      "name": "no_snp_dist_files",
+      "size": 284,
+      "type": "matrix"
+    },
+    "mh_dist_file": {
+      "blob": "",
+      "format": "text/csv",
+      "id": "mh_dist_file",
+      "name": "no_mh_dist_file",
+      "size": 284,
+      "type": "matrix"
+    }
+  },
+  "filters": {
+    "paneFilters": [],
+    "dataFilters": [],
+    "chartFilters": [],
+    "searchOperator": "includes",
+    "searchValue": "",
+    "selection": [],
+    "selectionBreakdownField": null
+  },
+  "matrices": {
+    "matrix-1": {
+      "controls": true,
+      "labelsFontSize": 12,
+      "axisLabelsFontSize": 12,
+      "showLabels": true,
+      "truncateLabels": true,
+      "rotateAxisLabels": 90,
+      "paneId": "matrix-1",
+      "file": "snp_dist_file"
+    },
+    "matrix-2": {
+      "controls": true,
+      "labelsFontSize": 12,
+      "axisLabelsFontSize": 12,
+      "showLabels": true,
+      "truncateLabels": true,
+      "rotateAxisLabels": 90,
+      "paneId": "matrix-2",
+      "file": "mh_dist_file"
+    }
+  },
+  "maps": {},
+  "meta": {
+    "name": "Unnamed Project",
+    "image": "",
+    "timestamp": "2025-09-08T21:20:54.389Z",
+    "description": ""
+  },
+  "networks": {},
+  "notes": {},
+  "panes": {
+    "model": {
+      "global": {
+        "splitterSize": 2,
+        "tabEnableClose": false,
+        "tabSetHeaderHeight": 1,
+        "tabSetTabStripHeight": 1,
+        "tabSetMinWidth": 160,
+        "tabSetMinHeight": 160,
+        "borderMinSize": 160,
+        "borderBarSize": 20,
+        "borderEnableDrop": false
+      },
+      "borders": [
+        {
+          "type": "border",
+          "size": 240,
+          "location": "right",
+          "children": [
+            {
+              "type": "tab",
+              "id": "--mr-legend-pane",
+              "name": "Legend",
+              "component": "Legend",
+              "enableClose": false,
+              "enableDrag": false
+            },
+            {
+              "type": "tab",
+              "id": "--mr-selection-pane",
+              "name": "Selection",
+              "component": "Selection",
+              "enableClose": false,
+              "enableDrag": false
+            },
+            {
+              "type": "tab",
+              "id": "--mr-history-pane",
+              "name": "History",
+              "component": "History",
+              "enableClose": false,
+              "enableDrag": false
+            },
+            {
+              "type": "tab",
+              "id": "--mr-views-pane",
+              "name": "Views",
+              "component": "Views",
+              "enableClose": false,
+              "enableDrag": false
+            }
+          ]
+        }
+      ],
+      "layout": {
+        "type": "row",
+        "id": "#37f1d751-c74d-46b6-b64d-47a45fccb45b",
+        "children": [
+          {
+            "type": "row",
+            "id": "#ba26d9b1-88b2-4a13-8a64-ec801d5a5cec",
+            "children": [
+              {
+                "type": "row",
+                "id": "#49af5d2b-1b5d-4556-8f0b-0300566d9bc4",
+                "weight": 50,
+                "children": [
+                  {
+                    "type": "tabset",
+                    "id": "#b93c245e-68e0-4822-8b8f-778fdcf3ecb5",
+                    "weight": 50,
+                    "children": [
+                      {
+                        "type": "tab",
+                        "id": "matrix-1",
+                        "name": "Core SNP",
+                        "component": "Matrix"
+                      },
+                      {
+                        "type": "tab",
+                        "id": "matrix-2",
+                        "name": "% Avg Divergence",
+                        "component": "Matrix"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tabset",
+                    "id": "#6a064231-64a8-45d0-98ad-41e34d3149e0",
+                    "weight": 50,
+                    "children": [
+                      {
+                        "type": "tab",
+                        "id": "tree-1",
+                        "name": "Tree",
+                        "component": "Tree"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tabset",
+                "id": "#bd2dda2f-729a-4e6e-a5b7-fbc80dea65a3",
+                "weight": 50,
+                "children": [
+                  {
+                    "type": "tab",
+                    "id": "table-1",
+                    "name": "Metadata",
+                    "component": "Table"
+                  },
+                  {
+                    "type": "tab",
+                    "id": "chart-1",
+                    "name": "Progressive Core Genome Fraction",
+                    "component": "Chart"
+                  }
+                ],
+                "active": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "slicers": {},
+  "styles": {
+    "coloursField": "partition",
+    "colourPalettes": [],
+    "defaultColour": "transparent",
+    "defaultShape": "circle",
+    "colourSettings": {},
+    "labelsField": "id",
+    "legendDirection": "row",
+    "shapesField": null,
+    "shapePalettes": []
+  },
+  "tables": {
+    "table-1": {
+      "displayMode": "cosy",
+      "hideUnselected": false,
+      "title": "Metadata",
+      "paneId": "table-1",
+      "columns": [
+      ],
+      "file": "summary_file"
+    }
+  },
+  "timelines": {},
+  "trees": {
+    "tree-1": {
+      "alignLabels": true,
+      "blockHeaderFontSize": 13,
+      "blockPadding": 0,
+      "blocks": [
+        "status",
+        "partition"
+      ],
+      "blockSize": 14,
+      "branchLengthsDigits": 4,
+      "controls": true,
+      "fontSize": 16,
+      "hideOrphanDataRows": false,
+      "ids": null,
+      "internalLabelsFilterRange": [
+        0,
+        100
+      ],
+      "internalLabelsFontSize": 13,
+      "lasso": false,
+      "nodeSize": 14,
+      "path": null,
+      "roundBranchLengths": true,
+      "scaleLineAlpha": true,
+      "showBlockHeaders": true,
+      "showBlockLabels": false,
+      "showBranchLengths": false,
+      "showEdges": true,
+      "showInternalLabels": false,
+      "showLabels": true,
+      "showLeafLabels": true,
+      "showPiecharts": true,
+      "showShapeBorders": true,
+      "showShapes": true,
+      "styleLeafLabels": false,
+      "styleNodeEdges": false,
+      "subtreeIds": null,
+      "type": "rc",
+      "title": "Maximum Likelihood Tree",
+      "labelField": "id",
+      "file": "snp_tree_file",
+      "highlightedId": null
+    }
+  },
+  "views": [],
+  "schema": "https://microreact.org/schema/v1.json"
+}

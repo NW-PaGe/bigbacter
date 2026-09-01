@@ -1,20 +1,26 @@
 reports:
-  "*/*/other/software_versions.yml":
-    display: "Software versions"
-  "*/*/*-summary.tsv":
-    display: "Run summary"
-  "*/*/*/poppunk/*":
-    display: "PopPUNK files"
-  "*/*/*/*/figures/*":
-    display: "Figures"
-  "*/*/*/*/alns/*":
-    display: "Genome alignment files"
-  "*/*/*/*/snippy/*":
-    display: "Compressed Snippy files for each isolate"
-  "*/*/*/*/trees/*":
-    display: "Phylogenetic trees"
-  "*/*/*/*/dists/*":
-    display: "Genome distance metrics"
-  "*/*/*/*/stats/*":
-    display: "Genome statistics"
-
+  "**/summary/*":
+    display: "Summary file (cluster)"
+  "**/report/*":
+    display: "Microreact report (cluster)"
+  "**/aln/*":
+    display: "Genome alignment file (cluster)"
+  "**/var/*":
+    display: "Snippy files (sample)"
+  "**/tree/*":
+    display: "Phylogenetic tree (cluster)"
+  "**/dist/*":
+    display: "Genome distance matrix (cluster)"
+  "**/qc/*":
+    display: "Quality Control file (cluster)"
+  "**/asm/*":
+    display: "Genome assembly (sample)"
+  "**/reads/*":
+    display: "Raw reads file (sample)"
+  "**/multiqc/*":
+    display: "MultiQC report (run)"
+  "**/pipeline_info/*":
+    display: "Pipeline info (run)"
+  "*/*/*-summary.csv":
+    display: "Run summary (run)"
+    

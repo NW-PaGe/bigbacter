@@ -1,44 +1,26 @@
-# BigBacter
-## Overview 
-BigBacter is a pipeline aimed at simplifying bacterial genomic surveillance.
+[![](https://github.com/NW-PaGe/bigbacter-docs/raw/a0184ebe0bf6341508ca483f587a5ede6e6e0c13/assets/media/bigbacter_logo.png)](https://github.com/NW-PaGe/bigbacter-docs/blob/a0184ebe0bf6341508ca483f587a5ede6e6e0c13/assets/media/bigbacter_logo.png)
 
-**Main features**
-1) Saves your samples to a personal database (can be stored locally or on the cloud)
-2)  Includes database samples when they are closely related to new samples
-3) Optimized to reduce core genome shrinkage
-4) Optimized for speed and resource usage
-5) Multiple species/subtypes can be included in a single run
-6) Generates report-ready figures
+# BigBacter: Bacterial Genomic Surveillance
 
-**Main analyses:**
-1) Recombination-aware core SNP analysis (Snippy and Gubbins)
-2) Accessory distance analysis (PopPUNK)
-3) Phylogenetic analysis (IQTREE2 or Rapidnj)
+## Key Features
 
-**Main outputs:**
-1) Phylogenetic trees (Core SNPs)
-2) Distance matrices (Accessory distance and Core SNPs)
-3) Tabulated summary (QC metrics, linkage summaries, and more!)
-4) Outputs are summarized in Microreact files 🙌
+BigBacter is a bacterial genomic surveillance pipeline that can:
 
-**Required Inputs**
-|Column Name|Description|
-|-|-|
-|sample|sample name|
-|taxa|sample taxonomy (species or lower)|
-|assembly|assembly file|
-|fastq_1|foward read|
-|fastq_2|reverse read|
+<div style="padding: 1em; margin: 1em 0;">
 
-BigBacter also requires a taxon-specific PopPUNK database (pre-made databases can be found [here](https://www.bacpop.org/poppunk/)).
-(https://www.bacpop.org/poppunk/))
-> [!TIP]
-> BigBacter is designed to run after general bacterial analysis (e.g, [PHoeNIx](https://github.com/CDCgov/phoenix), [Bactopia](https://github.com/bactopia/bactopia), [TheiaProk](https://github.com/theiagen/public_health_bioinformatics).)
+🧬 <strong>Iterative clustering</strong> - cluster assignments stay consistent across runs using a per-sample sourmash database that expands automatically with each new submission<br>
+🧬 <strong>Soft-core phylogenomics</strong> - retains substantially more phylogenetic signal than strict-core approaches by tolerating a configurable level of missing data<br>
+🧬 <strong>Automated reference selection</strong> - selects the most representative assembly per cluster using k-mer containment and assembly quality scoring; reuses the same reference on subsequent runs for consistent SNP distances<br>
+🧬 <strong>Dual distance metrics</strong> - reports both core-genome SNP distances and whole-genome containment scores to capture both SNP-level and accessory genome variation<br>
 
-## How to use BigBacter:
-1) [Quick Start](https://github.com/DOH-JDJ0303/bigbacter-nf/wiki/1.-Quick-Start)
-2) [Full Instructions](https://github.com/DOH-JDJ0303/bigbacter-nf/wiki/2.-Full-Instructions)
+</div>  
 
-### Checkout the [wiki](https://github.com/DOH-JDJ0303/bigbacter-nf/wiki) to learn more!
+BigBacter accepts reads, assemblies, or **SRA and GenBank accessions**, and fills in whatever is missing — assembling, subsampling, and assigning species-level taxonomy along the way. Because clustering is k-mer based and stored per-sample, **no reference database has to be built before a new species can be run**, and a run can start with as little as a single isolate. BigBacter is designed to run downstream of a workflow with robust assembly QC, such as [PHoeNIx](https://github.com/CDCgov/phoenix), [TheiaProk](https://public-health-bacterial-genomics-theiagen.readthedocs.io/en/latest/theiaprok.html), or [Bactopia](https://github.com/bactopia/bactopia).
 
-> BigBacter was originally created by Jared Johnson for the Washington State Department of Health. See a full list of contributors [here](https://github.com/DOH-JDJ0303/bigbacter-nf/blob/main/docs/acknowledgements.md).
+## Pipeline Overview
+
+![](https://nw-page.github.io/bigbacter-docs/docs/v2.0/media/bigbacter-v2_0-nw-page.png)
+
+## More Information:
+
+See the [docs](https://nw-page.github.io/bigbacter-docs/docs/v2.0/) for more information.

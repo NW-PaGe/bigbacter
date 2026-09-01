@@ -1,56 +1,71 @@
-# base image
-FROM ubuntu:jammy
+FROM ubuntu:22.04
 
-# metadata
-LABEL base.image="ubuntu:jammy"
-LABEL dockerfile.version="2"
-LABEL software="BigBacter"
-LABEL software.version="v1.0.0"
-LABEL description="Basic Linux for Running BigBacter Scripts"
-LABEL website="https://github.com/DOH-JDJ0303/bigbacter-nf"
-LABEL license="Apache 2.0"
-LABEL maintainer="Jared Johnson"
-LABEL maintainer.email="jared.johnson@doh.wa.gov"
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# prevents having to enter commands during apt-get install
-ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /app
 
-# install dependencies
-RUN apt-get update && apt-get -y --no-install-recommends install \
-    ca-certificates \
-    libssl-dev \
-    zlib1g-dev \
-    libbz2-dev \
-    libreadline-dev \
-    libsqlite3-dev \
-    make \
-    llvm \
-    libncurses5-dev \
-    libncursesw5-dev \
-    libharfbuzz-dev \
-    libfribidi-dev \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libxml2-dev \
-    xz-utils \
-    tk-dev \
-    libtiff-dev \
-    libffi-dev \
-    liblzma-dev \
-    build-essential \
-    bc \
-    unzip \
-    tar \
-    gzip \
-    curl \
+# System dependencies
+RUN apt-get update && apt-get install -y \
     wget \
-    r-base \
-    r-base-dev \
-    bzip2 \
-    jq && \
-    apt-get autoclean && \
-    rm -rf /var/lib/apt/lists/*
-    
-# required R packages
-RUN R -e "install.packages(c('tidyverse', 'phangorn','BiocManager', 'remotes', 'rjson'), repos='https://cran.rstudio.com/')"
-RUN R -e "remotes::install_github('YuLab-SMU/treeio'); remotes::install_github('YuLab-SMU/ggtree')"
+    curl \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    apt-transport-https \
+    build-essential \
+    gcc \
+    g++ \
+    make \
+    cmake \
+    python3 \
+    python3-pip \
+    python3-dev \
+    python3-venv \
+    zip \
+    unzip \
+    gzip \
+    pigz \
+    tabix \
+    minimap2 \
+    samtools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python tooling + packages
+RUN python3 -m pip install --upgrade pip setuptools wheel
+
+RUN python3 -m pip install \
+    sourmash \
+    screed \
+    numpy \
+    biopython \
+    pathlib2 \
+    scikit-learn \
+    psutil \
+    plotly \
+    kaleido
+
+# Create user, set ownership, drop privileges
+RUN groupadd -r biouser && useradd -r -g biouser -d /home/biouser -s /bin/bash biouser && \
+    mkdir -p /home/biouser && \
+    chown -R biouser:biouser /home/biouser
+
+RUN chown -R biouser:biouser /app
+USER biouser
+
+# Sanity checks (these were in history; optional but preserved)
+RUN python3 -c "import sourmash, screed, numpy, Bio.SeqIO, gzip, pathlib, plotly; print('Python packages installed successfully (incl. Plotly)')"
+RUN python3 -c "import kaleido; print('Kaleido installed for static Plotly export')"
+RUN which zip && which unzip && which gzip && which pigz && which tabix && which bgzip && echo "Linux utilities installed successfully"
+
+# Labels from the top of history
+LABEL maintainer="Jared Johnson"
+LABEL description="Base container for BigBacter"
+LABEL version="2.0"
+
+CMD ["/bin/bash"]
