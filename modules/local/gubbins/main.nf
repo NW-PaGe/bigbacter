@@ -24,7 +24,7 @@ process GUBBINS {
     def args = task.ext.args ?: ''
     """
     # set resource limit
-    ulimit -m ${task.memory.toBytes()}
+    ulimit -m \$(( ${task.memory.toBytes()} / 1024 )) 2>/dev/null || true
 
     # Run Gubbins
     run_gubbins.py \\
