@@ -3,6 +3,20 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v2.0.1 - 09/18/2026
+Resource limit adjustment made optional in `GUBBINS` process to avoid failure on systems with restricted privileges. 
+
+### `Added`
+- N/A
+### `Fixed`
+- `ulimit` failure avoided by combining with `|| true` in `GUBBINS` process as described in [issue #47](https://github.com/NW-PaGe/bigbacter/issues/47)
+
+### `Dependencies`
+- N/A
+
+### `Deprecated`
+- N/A
+  
 ## v2.0.0 - 09/01/2026
 
 Major release. Clustering, core-genome analysis, and assembly all changed, and the
