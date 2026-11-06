@@ -28,6 +28,7 @@ process FLOC {
         -d ${params.clust_dist} \\
         --min-hash-frac ${params.clust_min_hash_frac} \\
         --min-hash-freq ${params.clust_min_hash_freq} \\
+        --assign-hash-freq ${params.clust_assign_hashfreq} \\
         ${params.clust_ignore_qc ? '--ignore-qc' : ''} \\
         ${params.clust_overwrite ? '--overwrite' : ''} \\
         ${params.clust_plot ? '--plot' : ''} \\
