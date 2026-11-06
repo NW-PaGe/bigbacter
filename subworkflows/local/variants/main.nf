@@ -68,14 +68,16 @@ workflow VARIANTS {
         .map { meta ->
             def cluster_path = file(params.db) / meta.taxa / 'clusters' / meta.cluster
             def ref_path     = cluster_path / 'asm' / 'ref.fa.gz'
-            def ref_meta     = cluster_path / 'aux' / 'ref.json'
+            // ref.json is compressed when pushed, so look for ref.json.gz first
+            def ref_meta     = [cluster_path / 'aux' / 'ref.json.gz', cluster_path / 'aux' / 'ref.json']
+                .find { it.exists() }
             def snp_dir      = cluster_path / 'var'
 
             if (!ref_path.exists()) {
                 error "Reference assembly not found for cluster ${meta.cluster}: ${ref_path}"
             }
 
-            def ref_meta_file = ref_meta.exists() ? ref_meta : []
+            def ref_meta_file = ref_meta ?: []
             def snp_files     = snp_dir.exists()
                 ? snp_dir.listFiles().findAll { it.name.endsWith('.tar.gz') }
                 : []

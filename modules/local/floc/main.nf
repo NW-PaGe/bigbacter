@@ -12,6 +12,7 @@ process FLOC {
     tuple val(meta), path("global_containment.csv"), emit: qc
     tuple val(meta), path("nj_tree.html"),           emit: plot, optional: true
     tuple val(meta), path("nj_tree.nwk"),            emit: tree, optional: true
+    tuple val(meta), path("config.json"),            emit: config
 
 
     path "versions.yml", emit: versions
@@ -34,6 +35,16 @@ process FLOC {
         ${params.clust_plot ? '--plot' : ''} \\
         ${args} \\
         input/*/
+
+    # record the settings this database was built with (pushed to the database with --push)
+    cat <<-END_CONFIG > config.json
+    {
+      "clust_dist": ${params.clust_dist},
+      "clust_assign_hashfreq": ${params.clust_assign_hashfreq},
+      "floc_version": "\$(${tool} --version 2>&1 | tr -d '\\r')",
+      "bigbacter_version": "${workflow.manifest.version}"
+    }
+    END_CONFIG
 
     # version info
     cat <<-END_VERSIONS > versions.yml
