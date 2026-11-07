@@ -35,8 +35,9 @@ class Utils {
         if (!config_file.exists()) {
             nextflow.Nextflow.error(
                 "The existing ${taxa} database (${db_dir}) has no config.json, so the cluster distance it was built with is unknown. " +
-                "Create ${config_file} containing {\"clust_dist\": <value>} with the distance the database was built with " +
-                "(0.03 for databases built with BigBacter v2.0.x-v2.1.x defaults) and run again."
+                "Rebuilding the database with the current defaults is strongly recommended (see the v2.2.0 CHANGELOG). " +
+                "To keep using it as it is, create ${config_file} containing {\"clust_dist\": <value>} with the distance it was built with " +
+                "(0.03 for BigBacter v2.0.x-v2.1.x defaults) and run again."
             )
         }
 

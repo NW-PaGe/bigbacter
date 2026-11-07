@@ -4,15 +4,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## v2.2.0 - Unreleased
-Floc updated to v1.2.4 with new clustering defaults. Each taxa database now records the cluster distance it was built with in `config.json`, and BigBacter stops if a run would use a different distance. Reference metadata (`ref.json`) is now read correctly for existing clusters.
+Floc updated to v1.2.4 with new clustering defaults (`clust_dist` 0.1, `clust_assign_hashfreq` 0.6). **Existing databases should be rebuilt with these defaults** (see [Upgrading](#upgrading)). Each taxa database now records the cluster distance it was built with in `config.json`, and BigBacter stops if a run would use a different distance. Reference metadata (`ref.json`) is now read correctly for existing clusters.
 
 ### `Added`
 - `clust_assign_hashfreq` parameter (default `0.6`), passed to Floc as `--assign-hash-freq`. When new samples are assigned, each existing cluster is represented only by hashes found in at least this fraction of its members.
-- With `--push`, a `config.json` is saved to `<db>/<taxa>/config.json` and to `<outdir>/<timestamp>/<taxa>/cluster/config.json`. It records `clust_dist`, `clust_assign_hashfreq`, and the Floc and BigBacter versions used.
+- With `--push`, a `config.json` is saved to `<db>/<taxa>/config.json` and to `<outdir>/<timestamp>/<taxa>/config.json`. It records `clust_dist`, `clust_assign_hashfreq`, and the Floc and BigBacter versions used.
 - Before clustering against an existing taxa database (one that has a `sig/` directory), BigBacter checks its `config.json`. The run fails if the file is missing or if `--clust_dist` differs from the recorded value. A different `clust_assign_hashfreq` only produces a warning.
 
 ### `Changed`
-- `clust_dist` default changed from `0.03` to `0.1`, following the Floc v1.2.4 evaluation of cluster consistency across batch sizes.
+- `clust_dist` default changed from `0.03` to `0.1`. The new defaults come from the [Floc v1.2.4 evaluation](https://github.com/NW-PaGe/floc/tree/v1.2.4/docs/evals/dist_vs_assign-hash-freq) of how consistent clusters are when the same samples are added in batches of different sizes, across _E. coli_, _A. baumannii_ and _S. aureus_. With `--distance 0.1 --assign-hash-freq 0.6`, no pair of samples within 100 SNPs was split in any run.
 
 ### `Fixed`
 - Reference metadata was pushed to the database as `aux/ref.json.gz`, but later runs looked for `aux/ref.json`. Existing clusters therefore never loaded it, and their reports labelled the reference row `Reference` instead of `Reference_<sample>`. BigBacter now reads `ref.json.gz` (falling back to `ref.json`), and the cluster report accepts either.
@@ -24,13 +24,18 @@ Floc updated to v1.2.4 with new clustering defaults. Each taxa database now reco
 - N/A
 
 ### `Upgrading`
-- Databases created before v2.2.0 have no `config.json`, so runs against them will fail until one is added. For databases built with the v2.0–v2.1 defaults, add one to each taxa folder that has a `sig/` directory:
+- **We strongly recommend rebuilding existing databases with the new defaults.** Databases built with BigBacter v2.0–v2.1 used `clust_dist` 0.03 with Floc 1.1, which compared each new sample against every hash from every member of a cluster (the same as `clust_assign_hashfreq 0`). In the [Floc evaluation](https://github.com/NW-PaGe/floc/tree/v1.2.4/docs/evals/dist_vs_assign-hash-freq), that setting split identical samples (0 SNPs apart) into different clusters at every distance tested. The lowest distance tested, 0.05, still split closely related samples with the new hash setting, and 0.03 is lower again. Databases that keep the old settings will likely keep producing inconsistent cluster assignments as samples are added.
+- To rebuild, point `--db` at a new, empty location and run all previously processed samples through BigBacter v2.2.0 with `--push`, using the default `clust_dist` and `clust_assign_hashfreq`. Cluster names and membership will likely change, so update anything downstream that refers to them.
+- Databases created before v2.2.0 have no `config.json`, so runs against them will fail until one is added. If you must keep using an old database for now, add a `config.json` to each taxa folder that has a `sig/` directory and run with the settings it was built with:
   ```bash
   for d in <db>/*/; do
     [ -d "$d/sig" ] && printf '{\n  "clust_dist": 0.03,\n  "clust_assign_hashfreq": 0\n}\n' > "$d/config.json"
   done
   ```
-  Then run with `--clust_dist 0.03 --clust_assign_hashfreq 0` to stay consistent with how those databases were built (Floc 1.1 used every hash, which matches `0`). To use the new defaults instead, start a new database.
+  ```bash
+  nextflow run NW-PaGe/bigbacter ... --clust_dist 0.03 --clust_assign_hashfreq 0
+  ```
+  This keeps the old database consistent with itself, but not reliable. It should only be a stopgap until the database is rebuilt.
 
 ## v2.1.1 - 09/30/2026
 Maximum likelihood tree is always returned now instead of "consensus" tree generated by IQTREE when using bootstrapping. The run summary is also now split into a masked and unmasked version to avoid confusion. Both changes were from issues identified by @millerkrista.
