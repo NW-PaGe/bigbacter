@@ -3,8 +3,8 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v2.2.0 - Unreleased
-Floc updated to v1.2.4 with new clustering defaults (`clust_dist` 0.1, `clust_assign_hashfreq` 0.6). **Existing databases should be rebuilt with these defaults** (see [Upgrading](#upgrading)). Each taxa database now records the cluster distance it was built with in `config.json`, and BigBacter stops if a run would use a different distance. Reference metadata (`ref.json`) is now read correctly for existing clusters.
+## v2.2.0 - 11/09/2026
+New clustering defaults. Floc is updated to v1.2.4, the default `clust_dist` is raised from `0.03` to `0.1`, and the new `clust_assign_hashfreq` parameter (default `0.6`) keeps cluster assignments much more consistent as samples are added over time. Each taxa database now records the settings it was built with in `config.json`, and BigBacter stops if a run would use a different cluster distance. Reference metadata (`ref.json`) is also now read correctly for existing clusters. **Existing databases should be rebuilt with these defaults** (see [Upgrading](#upgrading)). A full write-up of the changes, the evaluation behind them, and how to upgrade is available in the [v2.2.0 blog post](https://nw-page.github.io/bigbacter-docs/posts/bigbacter-v2-2-0-clustering-defaults/).
 
 ### `Added`
 - `clust_assign_hashfreq` parameter (default `0.6`), passed to Floc as `--assign-hash-freq`. When new samples are assigned, each existing cluster is represented only by hashes found in at least this fraction of its members.
