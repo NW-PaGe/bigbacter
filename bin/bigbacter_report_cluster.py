@@ -81,7 +81,8 @@ def _delete_pane_by_id(node, pane_id):
     return False
 
 def load_json(path: str) -> Dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
+    opener = gzip.open if str(path).endswith(".gz") else open
+    with opener(path, "rt", encoding="utf-8") as f:
         return json.load(f)
 
 def _extend_dict(main: Dict[str, Dict[str, Any]], new: Dict[str, Dict[str, Any]]) -> None:
@@ -221,7 +222,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
     snp_dist_file       = _find_file(indir, "dist_wide.csv")
     snp_tree_file       = _find_file(indir, "core.aln.*")
     mh_dist_file        = _find_file(indir, "*.tsv.gz")
-    ref_meta_file       = indir / "ref.json"
+    ref_meta_file       = next((f for f in (indir / "ref.json", indir / "ref.json.gz") if f.exists()), None)
     microreact_template = indir / "template.microreact"
 
     # ----------------------------
@@ -245,8 +246,10 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
             ref_origin = get_assembly_stem(ref_meta.get('name', '')).strip()
             if ref_origin:
                 ref_name = f"{ref_name}_{ref_origin}"
-        except:
-            LOGGER.warning("Failed to load reference metadata")
+        except Exception as e:
+            LOGGER.warning(f"Failed to load reference metadata from {ref_meta_file}: {e}")
+    else:
+        LOGGER.warning("No reference metadata (ref.json) found")
 
     # ----------------------------
     # Alignment stats

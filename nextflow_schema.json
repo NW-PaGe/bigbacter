@@ -110,7 +110,7 @@
       "properties": {
         "clust_dist": {
           "type": "number",
-          "default": 0.03,
+          "default": 0.1,
           "description": "Distance threshold used to create clusters",
           "fa_icon": "fas fa-ruler-horizontal"
         },
@@ -125,6 +125,14 @@
           "default": 0.5,
           "fa_icon": "fas fa-chart-pie",
           "description": "Minimum fraction of sample hashes shared with the global hashes after filtering"
+        },
+        "clust_assign_hashfreq": {
+          "type": "number",
+          "default": 0.6,
+          "minimum": 0,
+          "maximum": 1,
+          "fa_icon": "fas fa-chart-pie",
+          "description": "When assigning new samples, represent each existing cluster only by hashes found in at least this fraction of its members; 0 uses every hash"
         },
         "clust_ignore_qc": {
           "type": "boolean",

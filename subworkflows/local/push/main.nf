@@ -10,7 +10,7 @@ workflow PUSH {
     
     take:
     ch_manifest  // channel: [ val(meta), path(assembly), path(reads) ]
-    ch_db        // channel: [ val(meta), path(signature_db) ]
+    ch_db        // channel: [ val(meta), path(signature_db + config.json) ]
     ch_ref_data  // channel: [ val(meta), path(ref_assembly), path(ref_meta) ]
     ch_snp_files // channel: [ val(meta), path(snp_tar) ]
     ch_report    // channel: [ val(meta), path(report_files) ] - used as sentinel to prevent premature pushing
@@ -26,7 +26,7 @@ workflow PUSH {
 
     ch_taxa = ch_db
         .map { meta, db -> 
-            [[taxa: meta.taxa], db] 
+            [[taxa: meta.taxa], meta.timestamp, db] 
         }
         .combine(
             ch_report
@@ -36,12 +36,13 @@ workflow PUSH {
                 .groupTuple(),
             by: 0
         )
-        .map { meta, db, report_files ->
+        .map { meta, timestamp, db, report_files ->
             def all_files = [db, report_files]
                 .flatten()
                 .findAll { it } // Remove null values
             
-            [meta, all_files]
+            // timestamp is needed to save config.json to the outdir
+            [meta + [timestamp: timestamp], all_files]
         }
 
     /*

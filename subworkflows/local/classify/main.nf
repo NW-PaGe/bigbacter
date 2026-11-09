@@ -71,6 +71,9 @@ workflow CLASSIFY {
         .groupTuple(by: 0)
         .map { meta, assemblies -> 
             def sig_db = file(params.db) / meta.taxa / 'sig'
+            if (sig_db.exists()) {
+                Utils.check_db_config(file(params.db) / meta.taxa / 'config.json', meta.taxa, params, log)
+            }
             [meta, assemblies, sig_db.exists() ? sig_db : []]
         }
 
@@ -112,7 +115,9 @@ workflow CLASSIFY {
         }
 
     emit:
-    db       = FLOC.out.sigs      // channel: [ val(meta), path(sigs) ]
+    db       = FLOC.out.sigs      // channel: [ val(meta), path(sigs + config.json) ]
+        .join(FLOC.out.config, remainder: true) // config.json only exists for new taxa databases
+        .map { meta, sigs, config -> [meta, [sigs, config].flatten().findAll { it }] }
     db_dist  = ch_db_dist          // channel: [ val(meta), path(dist) ]
     manifest = ch_manifest_final   // channel: [ val(meta), path(assembly), ... ]
     versions = ch_versions         // channel: [ path(versions.yml) ]
