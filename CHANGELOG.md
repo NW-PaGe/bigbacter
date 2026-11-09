@@ -8,8 +8,8 @@ Floc updated to v1.2.4 with new clustering defaults (`clust_dist` 0.1, `clust_as
 
 ### `Added`
 - `clust_assign_hashfreq` parameter (default `0.6`), passed to Floc as `--assign-hash-freq`. When new samples are assigned, each existing cluster is represented only by hashes found in at least this fraction of its members.
-- With `--push`, a `config.json` is saved to `<db>/<taxa>/config.json` and to `<outdir>/<timestamp>/<taxa>/config.json`. It records `clust_dist`, `clust_assign_hashfreq`, and the Floc and BigBacter versions used.
-- Before clustering against an existing taxa database (one that has a `sig/` directory), BigBacter checks its `config.json`. The run fails if the file is missing or if `--clust_dist` differs from the recorded value. A different `clust_assign_hashfreq` only produces a warning.
+- `config.json` records the `clust_dist`, `clust_assign_hashfreq`, Floc version and BigBacter version a taxa database was created with. It is saved to `<db>/<taxa>/config.json` and `<outdir>/<timestamp>/<taxa>/config.json` only by the `--push` run that creates the taxa database. Later runs do not write or push it again.
+- Before clustering against an existing taxa database (one that has a `sig/` directory), BigBacter checks its `config.json`. The run fails if the file is missing or if `--clust_dist` differs from the recorded value. A `clust_assign_hashfreq` different from the value the database was created with only produces a warning.
 
 ### `Changed`
 - `clust_dist` default changed from `0.03` to `0.1`. The new defaults come from the [Floc v1.2.4 evaluation](https://github.com/NW-PaGe/floc/tree/v1.2.4/docs/evals/dist_vs_assign-hash-freq) of how consistent clusters are when the same samples are added in batches of different sizes, across _E. coli_, _A. baumannii_ and _S. aureus_. With `--distance 0.1 --assign-hash-freq 0.6`, no pair of samples within 100 SNPs was split in any run.

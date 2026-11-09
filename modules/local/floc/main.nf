@@ -12,7 +12,7 @@ process FLOC {
     tuple val(meta), path("global_containment.csv"), emit: qc
     tuple val(meta), path("nj_tree.html"),           emit: plot, optional: true
     tuple val(meta), path("nj_tree.nwk"),            emit: tree, optional: true
-    tuple val(meta), path("config.json"),            emit: config
+    tuple val(meta), path("config.json"),            emit: config, optional: true
 
 
     path "versions.yml", emit: versions
@@ -23,6 +23,8 @@ process FLOC {
     script:
     def args = task.ext.args ?: '' 
     tool = 'floc'
+    // config.json is only written when the taxa database is created (no existing sig db)
+    def new_db = !db
     """
     ${tool} \\
         --pairwise \\
@@ -36,8 +38,10 @@ process FLOC {
         ${args} \\
         input/*/
 
-    # record the settings this database was built with (pushed to the database with --push)
-    cat <<-END_CONFIG > config.json
+    # record the settings a new taxa database is created with (pushed to the database with --push).
+    # existing databases already have a config.json, so none is written.
+    if ${new_db}; then
+        cat <<-END_CONFIG > config.json
     {
       "clust_dist": ${params.clust_dist},
       "clust_assign_hashfreq": ${params.clust_assign_hashfreq},
@@ -45,6 +49,7 @@ process FLOC {
       "bigbacter_version": "${workflow.manifest.version}"
     }
     END_CONFIG
+    fi
 
     # version info
     cat <<-END_VERSIONS > versions.yml

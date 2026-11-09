@@ -116,8 +116,8 @@ workflow CLASSIFY {
 
     emit:
     db       = FLOC.out.sigs      // channel: [ val(meta), path(sigs + config.json) ]
-        .join(FLOC.out.config)
-        .map { meta, sigs, config -> [meta, [sigs, config].flatten()] }
+        .join(FLOC.out.config, remainder: true) // config.json only exists for new taxa databases
+        .map { meta, sigs, config -> [meta, [sigs, config].flatten().findAll { it }] }
     db_dist  = ch_db_dist          // channel: [ val(meta), path(dist) ]
     manifest = ch_manifest_final   // channel: [ val(meta), path(assembly), ... ]
     versions = ch_versions         // channel: [ path(versions.yml) ]
