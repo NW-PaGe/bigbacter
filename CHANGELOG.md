@@ -4,17 +4,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
-Every run now saves its database files to the run directory, whether or not `--push` is used. A run made without `--push` can then be pushed to the database later, for example with the `bigbacter-db` companion tool. What `--push` writes to the database is unchanged.
+Every run now saves its database files to the run directory, whether or not `--push` is used. A run made without `--push` can then be pushed to the database later, for example with [bb-utils](https://github.com/DOH-JDJ0303/bb-utils). What `--push` writes to the database is unchanged.
 
 ### `Added`
 - Database files saved to `<outdir>/<timestamp>/`, in a layout that mirrors the database:
   - `<taxa>/sig/<sample>.sig.gz` - signatures of the samples in the run (not the whole taxa database)
   - `<taxa>/<cluster>/asm/ref.fa.gz` and `<taxa>/<cluster>/aux/ref.json.gz` - reference and its metadata, for every cluster in the run
-  - `<sample>/asm/<sample>.fa.gz` - sample assembly as stored in the database, including assemblies supplied in the samplesheet
+  - `<taxa>/<cluster>/asm/<sample>.fa.gz` - sample assemblies as stored in the database, including assemblies supplied in the samplesheet
 
 ### `Changed`
 - The `TAXA_FILES` and `CLUSTER_FILES` processes now run on every run. They only write to the database with `--push`. Without `--push`, only the signatures of the run's samples are staged.
 - `config.json` is saved to `<outdir>/<timestamp>/<taxa>/config.json` by any run that finds no existing taxa database, not only by `--push` runs.
+
+### `Removed`
+- `<outdir>/<timestamp>/<sample>/asm/<sample>.fa` is no longer saved. Sample assemblies are now saved once, gzipped, to `<outdir>/<timestamp>/<taxa>/<cluster>/asm/<sample>.fa.gz`.
 
 ## v2.2.0 - 11/09/2026
 New clustering defaults. Floc is updated to v1.2.4, the default `clust_dist` is raised from `0.03` to `0.1`, and the new `clust_assign_hashfreq` parameter (default `0.6`) keeps cluster assignments much more consistent as samples are added over time. Each taxa database now records the settings it was built with in `config.json`, and BigBacter stops if a run would use a different cluster distance. Reference metadata (`ref.json`) is also now read correctly for existing clusters. **Existing databases should be rebuilt with these defaults** (see [Upgrading](#upgrading)). A full write-up of the changes, the evaluation behind them, and how to upgrade is available in the [v2.2.0 blog post](https://nw-page.github.io/bigbacter-docs/posts/bigbacter-v2-2-0-clustering-defaults/).
