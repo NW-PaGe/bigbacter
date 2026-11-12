@@ -110,20 +110,19 @@ workflow BIGBACTER {
 
     /* 
     =============================================================================================================================
-        DATABASE UPDATE (OPTIONAL)
-        - Push results to database directory structure
+        DATABASE FILES
+        - Always saved to the run directory, in a layout that mirrors the database
+        - Also pushed to the database with --push
     =============================================================================================================================
     */
 
-    if (params.push) {
-        PUSH(
-            CLASSIFY.out.manifest,
-            CLASSIFY.out.db,
-            VARIANTS.out.ref_data,
-            VARIANTS.out.snp_files, 
-            REPORT.out.report
-        )
-    }
+    PUSH(
+        CLASSIFY.out.manifest,
+        CLASSIFY.out.db,
+        VARIANTS.out.ref_data,
+        VARIANTS.out.snp_files,
+        REPORT.out.report
+    )
 
     //
     // Collate and save software versions

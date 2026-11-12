@@ -1,5 +1,8 @@
 //
-// Push analysis results to database directory structure
+// Prepare the database files of a run.
+// They are always saved to the run directory (<outdir>/<timestamp>) in a layout that mirrors the
+// database, so a run can be pushed later, and are also pushed to the database with --push.
+// The publish paths are set in conf/modules.config (TAXA_FILES, CLUSTER_FILES).
 //
 
 include { FILES as TAXA_FILES    } from '../../../modules/local/push/files/main'
@@ -24,6 +27,12 @@ workflow PUSH {
     =============================================================================================================================
     */
 
+    // Samples in this run, per taxa. FLOC returns every signature in the taxa database, but only
+    // the signatures of this run's samples are saved to the run directory.
+    ch_ids = ch_manifest
+        .map { [[taxa: it.meta.taxa], it.meta.id.toString()] }
+        .groupTuple()
+
     ch_taxa = ch_db
         .map { meta, db -> 
             [[taxa: meta.taxa], meta.timestamp, db] 
@@ -36,13 +45,22 @@ workflow PUSH {
                 .groupTuple(),
             by: 0
         )
-        .map { meta, timestamp, db, report_files ->
-            def all_files = [db, report_files]
+        .combine(ch_ids, by: 0)
+        .map { meta, timestamp, db, report_files, ids ->
+            // sorted so the task hash is stable when resuming
+            def run_ids = ids.collect().sort()
+
+            // without --push nothing goes to the database, so only this run's signatures are staged
+            def db_files = params.push
+                ? db
+                : db.findAll { it.name == 'config.json' || run_ids.contains(it.name - '.sig.gz') }
+
+            def all_files = [db_files, report_files]
                 .flatten()
                 .findAll { it } // Remove null values
             
-            // timestamp is needed to save config.json to the outdir
-            [meta + [timestamp: timestamp], all_files]
+            // timestamp and ids are needed to save config.json and this run's signatures to the outdir
+            [meta + [timestamp: timestamp, ids: run_ids], all_files]
         }
 
     /*
@@ -92,7 +110,7 @@ workflow PUSH {
 
     /*
     =============================================================================================================================
-        PUSH FILES TO DATABASE
+        SAVE FILES TO THE RUN DIRECTORY AND (WITH --push) THE DATABASE
     =============================================================================================================================
     */
 
