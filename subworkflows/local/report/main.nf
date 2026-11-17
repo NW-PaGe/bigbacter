@@ -13,6 +13,7 @@ workflow REPORT {
     ch_snp_dist    // channel: [ val(meta), path(snp_distance_matrix) ]
     ch_snp_tree    // channel: [ val(meta), path(tree) ]
     ch_ref_data    // channel: [ val(meta), path(ref_assembly), path(ref_meta) ]
+    ch_gene_pa     // channel: [ val(meta), path(gene_presence_absence.Rtab) ] - empty without --accessory
     
     main:
     ch_versions = Channel.empty()
@@ -40,10 +41,15 @@ workflow REPORT {
                 .map { meta, ref_path, ref_meta -> 
                     [Utils.cluster_meta(meta), ref_meta] 
                 }
+                // null for clusters without a gene presence-absence matrix
+                .join(
+                    ch_gene_pa.map { meta, rtab -> [Utils.cluster_meta(meta), rtab] },
+                    remainder: true
+                )
                 .combine(ch_db_dist, by: 0),
             by: 0
         )
-        .map { meta, snp_summary, snp_dist, snp_tree, recomb_masked, ref_meta, db_dist ->
+        .map { meta, snp_summary, snp_dist, snp_tree, recomb_masked, ref_meta, gene_pa, db_dist ->
             // Update metadata with recombination masking status
             def meta_updated = meta + [recomb_masked: recomb_masked]
             
@@ -53,6 +59,7 @@ workflow REPORT {
                 snp_dist,
                 snp_tree,
                 ref_meta,
+                gene_pa,
                 db_dist
             ].findAll { it }
 

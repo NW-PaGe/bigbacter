@@ -7,6 +7,7 @@ include { TIMESTAMP              } from '../modules/local/timestamp/main'
 include { PREPARE                } from '../subworkflows/local/prepare/main'
 include { CLASSIFY               } from '../subworkflows/local/classify/main'
 include { VARIANTS               } from '../subworkflows/local/variants/main'
+include { ACCESSORY              } from '../subworkflows/local/accessory/main'
 include { REPORT                 } from '../subworkflows/local/report/main'
 include { PUSH                   } from '../subworkflows/local/push/main'
 
@@ -93,8 +94,26 @@ workflow BIGBACTER {
 
     /* 
     =============================================================================================================================
+        ACCESSORY GENOME (OPTIONAL)
+        - Annotation of every assembly in a cluster (Bakta), re-using annotations in the database
+        - Gene presence-absence (Panaroo)
+    =============================================================================================================================
+    */
+
+    ch_ann     = Channel.empty()
+    ch_gene_pa = Channel.empty()
+    if (params.accessory) {
+        ACCESSORY(CLASSIFY.out.manifest)
+        ch_ann      = ACCESSORY.out.ann_new
+        ch_gene_pa  = ACCESSORY.out.rtab
+        ch_versions = ch_versions.mix(ACCESSORY.out.versions)
+    }
+
+    /* 
+    =============================================================================================================================
         REPORT GENERATION
         - Cluster-level summaries
+        - Gene differences and neighbor-joining tree (with --accessory)
         - Microreact visualizations
     =============================================================================================================================
     */
@@ -104,7 +123,8 @@ workflow BIGBACTER {
         VARIANTS.out.snp_summary,
         VARIANTS.out.snp_dist,
         VARIANTS.out.snp_tree,
-        VARIANTS.out.ref_data
+        VARIANTS.out.ref_data,
+        ch_gene_pa
     )
     ch_versions = ch_versions.mix(REPORT.out.versions)
 
@@ -121,6 +141,7 @@ workflow BIGBACTER {
         CLASSIFY.out.db,
         VARIANTS.out.ref_data,
         VARIANTS.out.snp_files,
+        ch_ann,
         REPORT.out.report
     )
 

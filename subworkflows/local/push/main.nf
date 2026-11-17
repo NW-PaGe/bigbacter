@@ -16,6 +16,7 @@ workflow PUSH {
     ch_db        // channel: [ val(meta), path(signature_db + config.json) ]
     ch_ref_data  // channel: [ val(meta), path(ref_assembly), path(ref_meta) ]
     ch_snp_files // channel: [ val(meta), path(snp_tar) ]
+    ch_ann       // channel: [ val(meta), [ path(gff) ] ] - new annotations per cluster (empty without --accessory)
     ch_report    // channel: [ val(meta), path(report_files) ] - used as sentinel to prevent premature pushing
     
     main:
@@ -72,6 +73,7 @@ workflow PUSH {
     ch_cluster = ch_manifest
         .map { [Utils.cluster_meta(it.meta), it.assembly] }
         .groupTuple()
+        .join(ch_ann, remainder: true) // null without --accessory
         .join(
             ch_ref_data
                 .map { meta, ref_path, ref_meta -> 
@@ -94,9 +96,10 @@ workflow PUSH {
                 .groupTuple(),
             by: 0
         )
-        .map { meta, assemblies, ref_path, ref_meta, snp_files, report_files ->
+        .map { meta, assemblies, annotations, ref_path, ref_meta, snp_files, report_files ->
             def all_files = [
                 assemblies,
+                annotations,
                 ref_path,
                 ref_meta,
                 snp_files,

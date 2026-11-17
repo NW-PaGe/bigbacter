@@ -187,6 +187,156 @@ def _dist2csv_long(data, outfile, value_col: str = 'dist') -> None:
                 val = row.get(s2, 0) if s2 == s1 else row.get(s2)
                 writer.writerow([s1, s2, val])
 
+def _load_rtab(path: Path) -> Tuple[List[str], np.ndarray]:
+    """Load a Panaroo/Roary gene presence-absence Rtab file.
+
+    Returns the sample names and a samples x genes 0/1 array.
+    """
+    with _sniff_open(path) as f:
+        reader = csv.reader(f, delimiter='\t')
+        samples = next(reader)[1:]
+        rows = [[1 if v.strip() not in ('', '0') else 0 for v in row[1:]] for row in reader if row]
+    if any(len(r) != len(samples) for r in rows):
+        raise ValueError(f"{path}: rows do not all have {len(samples)} sample columns")
+    pa = np.array(rows, dtype=np.uint8).reshape(len(rows), len(samples))
+    return samples, pa.T
+
+def _gene_distance_matrix(pa: np.ndarray) -> np.ndarray:
+    """Pairwise number of genes present in one sample but not the other (samples x genes 0/1 input)."""
+    x = pa.astype(np.float64)
+    shared = x @ x.T
+    counts = np.diag(shared)
+    return np.rint(counts[:, None] + counts[None, :] - 2 * shared).astype(int)
+
+def _neighbor_joining(labels: List[str], dist: np.ndarray):
+    """Build a neighbor-joining tree (Saitou & Nei 1987) from a distance matrix.
+
+    Negative branch lengths are set to zero and the difference is moved to the sister branch.
+    Returns an unrooted Bio.Phylo tree. Needs at least two samples.
+    """
+    from Bio.Phylo.BaseTree import Clade, Tree
+
+    if len(labels) < 2:
+        raise ValueError("Neighbor joining needs at least two samples")
+
+    D = np.array(dist, dtype=float)
+    nodes = [Clade(name=str(l)) for l in labels]
+
+    if len(nodes) == 2:
+        nodes[0].branch_length = nodes[1].branch_length = max(D[0, 1], 0.0) / 2
+        return Tree(root=Clade(clades=nodes), rooted=False)
+
+    while len(nodes) > 3:
+        m = len(nodes)
+        r = D.sum(axis=1)
+        Q = (m - 2) * D - r[:, None] - r[None, :]
+        np.fill_diagonal(Q, np.inf)
+        i, j = divmod(int(Q.argmin()), m)
+        if i > j:
+            i, j = j, i
+
+        dij = D[i, j]
+        li = 0.5 * dij + (r[i] - r[j]) / (2 * (m - 2))
+        lj = dij - li
+        if li < 0:
+            li, lj = 0.0, max(lj - li, 0.0)
+        elif lj < 0:
+            li, lj = max(li - lj, 0.0), 0.0
+
+        nodes[i].branch_length = li
+        nodes[j].branch_length = lj
+        parent = Clade(clades=[nodes[i], nodes[j]])
+
+        # distances from the new node replace row/column i; row/column j is dropped
+        dk = 0.5 * (D[i] + D[j] - dij)
+        D[i, :] = dk
+        D[:, i] = dk
+        D[i, i] = 0.0
+        D = np.delete(np.delete(D, j, axis=0), j, axis=1)
+        nodes[i] = parent
+        del nodes[j]
+
+    # the last three nodes meet at the root
+    nodes[0].branch_length = max((D[0, 1] + D[0, 2] - D[1, 2]) / 2, 0.0)
+    nodes[1].branch_length = max((D[0, 1] + D[1, 2] - D[0, 2]) / 2, 0.0)
+    nodes[2].branch_length = max((D[0, 2] + D[1, 2] - D[0, 1]) / 2, 0.0)
+    return Tree(root=Clade(clades=nodes), rooted=False)
+
+def _root_at_midpoint(tree):
+    """Root a tree halfway along the path between its two most distant tips.
+
+    Returns a new Bio.Phylo tree with the same tip names and tip-to-tip distances. Used instead of
+    Bio.Phylo's root_at_midpoint, which lengthens the tree when the midpoint is on a tip's branch.
+    """
+    from Bio.Phylo.BaseTree import Clade, Tree
+
+    # the tree as an undirected graph
+    adj: Dict[Any, List[Tuple[Any, float]]] = {}
+    for parent in tree.find_clades(order='level'):
+        adj.setdefault(parent, [])
+        for child in parent.clades:
+            length = float(child.branch_length or 0.0)
+            adj[parent].append((child, length))
+            adj.setdefault(child, []).append((parent, length))
+    tips = [c for c in adj if c.is_terminal()]
+
+    def _sweep(start):
+        dist, prev, stack = {start: 0.0}, {start: None}, [start]
+        while stack:
+            u = stack.pop()
+            for v, length in adj[u]:
+                if v not in dist:
+                    dist[v], prev[v] = dist[u] + length, u
+                    stack.append(v)
+        return dist, prev
+
+    # the two most distant tips (a, b), then the branch (u, v) on their path that holds the midpoint
+    dist, _ = _sweep(tips[0])
+    a = max(tips, key=lambda t: dist[t])
+    dist, prev = _sweep(a)
+    b = max((t for t in tips if t is not a), key=lambda t: dist[t])
+    half = dist[b] / 2
+    v = b
+    while dist[prev[v]] > half:
+        v = prev[v]
+    u = prev[v]
+
+    def _build(node, came_from, length):
+        top = Clade(name=node.name if node.is_terminal() else None, branch_length=length)
+        stack = [(node, came_from, top)]
+        while stack:
+            n, source, new = stack.pop()
+            for nb, nb_length in adj[n]:
+                if nb is source:
+                    continue
+                child = Clade(name=nb.name if nb.is_terminal() else None, branch_length=nb_length)
+                new.clades.append(child)
+                stack.append((nb, n, child))
+        return top
+
+    root = Clade(clades=[_build(u, v, half - dist[u]), _build(v, u, dist[v] - half)])
+
+    # merge nodes left with a single child (the old root, when it had two children)
+    stack = [root]
+    while stack:
+        clade = stack.pop()
+        for idx, child in enumerate(clade.clades):
+            while len(child.clades) == 1:
+                only = child.clades[0]
+                only.branch_length = (only.branch_length or 0.0) + (child.branch_length or 0.0)
+                clade.clades[idx] = child = only
+            stack.append(child)
+
+    return Tree(root=root, rooted=True)
+
+def _write_newick(tree, outfile: Path) -> None:
+    """Write Newick without Biopython's automatic single-quote wrapping."""
+    from io import StringIO
+    buf = StringIO()
+    Phylo.write(tree, buf, "newick")
+    with open(outfile, "w") as fh:
+        fh.write(buf.getvalue().replace("'", ""))
+
 def _find_file(indir: Path, pattern: str) -> Optional[Path]:
     """Find first file matching glob pattern in directory."""
     matches = list(indir.glob(pattern))
@@ -222,6 +372,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
     snp_dist_file       = _find_file(indir, "dist_wide.csv")
     snp_tree_file       = _find_file(indir, "core.aln.*")
     mh_dist_file        = _find_file(indir, "*.tsv.gz")
+    gene_pa_file        = _find_file(indir, "*.Rtab")
     ref_meta_file       = next((f for f in (indir / "ref.json", indir / "ref.json.gz") if f.exists()), None)
     microreact_template = indir / "template.microreact"
 
@@ -333,13 +484,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
                 except Exception:
                     pass
 
-        # Write Newick without Biopython's automatic single-quote wrapping
-        from io import StringIO
-        _buf = StringIO()
-        Phylo.write(tree, _buf, "newick")
-        _nwk_str = _buf.getvalue().replace("'", "")
-        with open(snp_tree_out, "w") as _fh:
-            _fh.write(_nwk_str)
+        _write_newick(tree, snp_tree_out)
 
         labels, dist = _patristic_distance_matrix(tree)
 
@@ -348,6 +493,39 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
 
         LOGGER.info("Processed tree with %d tips and partitions; wrote %s", len(labels), snp_tree_out)
             
+    # ----------------------------
+    # Gene presence-absence: pairwise gene differences + neighbor-joining tree (optional)
+    # ----------------------------
+    gene_dist_out = Path(outdir) / f"{args.prefix}_gene-dist-wide{args.suffix}csv"
+    gene_dist_long_out = Path(outdir) / f"{args.prefix}_gene-dist-long{args.suffix}csv"
+    gene_tree_out = Path(outdir) / f"{args.prefix}_gene-tree{args.suffix}nwk"
+    if gene_pa_file:
+        gene_samples, gene_pa = _load_rtab(gene_pa_file)
+        gene_dist = _gene_distance_matrix(gene_pa)
+
+        gene_dist_data = {
+            s1: {s2: int(gene_dist[i, j]) for j, s2 in enumerate(gene_samples)}
+            for i, s1 in enumerate(gene_samples)
+        }
+        _dist2csv(gene_dist_data, outfile=gene_dist_out)
+        _dist2csv_long(gene_dist_data, outfile=gene_dist_long_out)
+        LOGGER.info(
+            "Processed gene presence-absence matrix (%d samples, %d genes) from %s",
+            len(gene_samples), gene_pa.shape[1], gene_pa_file
+        )
+
+        if len(gene_samples) > 1:
+            # sorted so the tree does not depend on the column order of the input
+            order = sorted(range(len(gene_samples)), key=lambda i: gene_samples[i])
+            gene_tree = _neighbor_joining(
+                [gene_samples[i] for i in order],
+                gene_dist[np.ix_(order, order)]
+            )
+            _write_newick(_root_at_midpoint(gene_tree), gene_tree_out)
+            LOGGER.info("Built gene presence-absence neighbor-joining tree; wrote %s", gene_tree_out)
+        else:
+            LOGGER.warning("Gene presence-absence tree not built (fewer than two samples)")
+
     # ----------------------------
     # Build final summary and write CSV
     # ----------------------------
@@ -409,7 +587,14 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
             "snp_tree_file": {"pane_id": "tree-1", "file": snp_tree_out},
             "snp_dist_file": {"pane_id": "matrix-1", "file": snp_dist_out},
             "mh_dist_file": {"pane_id": "matrix-2", "file": mh_dist_out},
+            "gene_dist_file": {"pane_id": "matrix-3", "file": gene_dist_out},
+            "gene_tree_file": {"pane_id": "tree-2", "file": gene_tree_out},
         }
+
+        # the gene difference matrix replaces the % Avg Divergence matrix when it is available
+        mr_skip = {"mh_dist_file"} if gene_dist_out.exists() else set()
+        # panes that are removed completely (pane, settings and file entry) when they are not used
+        mr_drop = mr_skip | {"gene_dist_file", "gene_tree_file"}
 
         mr_json = load_json(microreact_template)
 
@@ -417,10 +602,14 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
 
         for k, v in mr_map.items():
             pane_id, filepath = v.values()
-            if _ensure_path(filepath, k):
+            if k not in mr_skip and _ensure_path(filepath, k):
                 _attach_text_file(mr_json, k, filepath)
             else:
                 _delete_pane_by_id(layout, pane_id)
+                if k in mr_drop:
+                    mr_json.get('files', {}).pop(k, None)
+                    mr_json.get('matrices', {}).pop(pane_id, None)
+                    mr_json.get('trees', {}).pop(pane_id, None)
 
         # Meta
         # Build description
@@ -458,7 +647,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
 # -------------------------------
 
 def main() -> None:
-    version = "1.0.0"
+    version = "1.1.0"
     parser = argparse.ArgumentParser(
         description="Summarize BigBacter run outputs.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -469,6 +658,7 @@ Expected input directory structure:
   - dist_wide.csv (SNP distance matrix)
   - core.aln.* (Newick tree file)
   - *.tsv.gz (K-mer distance matrix)
+  - *.Rtab (optional, Panaroo gene presence-absence matrix)
   - template.microreact (optional, for Microreact output)
         """
     )

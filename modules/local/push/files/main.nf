@@ -5,6 +5,7 @@ process FILES {
     output:
     path "*.fa.gz",   includeInputs: true, optional: true
     path "*.tar.gz",  includeInputs: true, optional: true
+    path "*.gff.gz",  includeInputs: true, optional: true
     path "*.json.gz", includeInputs: true, optional: true
     path "*.sig.gz",  includeInputs: true, optional: true
     path "config.json", includeInputs: true, optional: true

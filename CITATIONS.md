@@ -78,6 +78,16 @@
 
   > Wong TKF, Ly-Trong N, Ren H, Demotte P, Baños H, Roger AJ, Susko E, Bielow C, De Maio N, Goldman N, Hahn MW, Dos Reis M, Vinh LS, Huttley G, Lanfear R, Minh BQ. IQ-TREE 3: phylogenomic inference software using complex evolutionary models. Mol Biol Evol. 2026;43(5):msag117. doi: 10.1093/molbev/msag117. PMID: 42085559; PMCID: PMC13191116.
 
+### Accessory genome
+
+* **Bakta**
+
+  > Schwengers O, Jelonek L, Dieckmann MA, Beyvers S, Blom J, Goesmann A. Bakta: rapid and standardized annotation of bacterial genomes via alignment-free sequence identification. Microb Genom. 2021;7(11):000685. doi: 10.1099/mgen.0.000685.
+
+* **Panaroo**
+
+  > Tonkin-Hill G, MacAlasdair N, Ruis C, Weimann A, Horesh G, Lees JA, Gladstone RA, Lo S, Beaudoin C, Floto RA, Frost SDW, Corander J, Bentley SD, Parkhill J. Producing polished prokaryotic pangenomes with the Panaroo pipeline. Genome Biol. 2020;21(1):180. doi: 10.1186/s13059-020-02090-4.
+
 ### Reporting
 
 * **MultiQC**

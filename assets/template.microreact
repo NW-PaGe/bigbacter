@@ -50,6 +50,22 @@
       "name": "no_mh_dist_file",
       "size": 284,
       "type": "matrix"
+    },
+    "gene_dist_file": {
+      "blob": "",
+      "format": "text/csv",
+      "id": "gene_dist_file",
+      "name": "no_gene_dist_file",
+      "size": 284,
+      "type": "matrix"
+    },
+    "gene_tree_file": {
+      "blob": "",
+      "format": "text/x-nh",
+      "id": "gene_tree_file",
+      "name": "no_gene_tree_file",
+      "size": 180,
+      "type": "tree"
     }
   },
   "filters": {
@@ -81,6 +97,16 @@
       "rotateAxisLabels": 90,
       "paneId": "matrix-2",
       "file": "mh_dist_file"
+    },
+    "matrix-3": {
+      "controls": true,
+      "labelsFontSize": 12,
+      "axisLabelsFontSize": 12,
+      "showLabels": true,
+      "truncateLabels": true,
+      "rotateAxisLabels": 90,
+      "paneId": "matrix-3",
+      "file": "gene_dist_file"
     }
   },
   "maps": {},
@@ -175,6 +201,12 @@
                         "id": "matrix-2",
                         "name": "% Avg Divergence",
                         "component": "Matrix"
+                      },
+                      {
+                        "type": "tab",
+                        "id": "matrix-3",
+                        "name": "Gene Differences",
+                        "component": "Matrix"
                       }
                     ]
                   },
@@ -186,7 +218,13 @@
                       {
                         "type": "tab",
                         "id": "tree-1",
-                        "name": "Tree",
+                        "name": "ML Tree",
+                        "component": "Tree"
+                      },
+                      {
+                        "type": "tab",
+                        "id": "tree-2",
+                        "name": "Gene NJ Tree",
                         "component": "Tree"
                       }
                     ]
@@ -285,6 +323,49 @@
       "title": "Maximum Likelihood Tree",
       "labelField": "id",
       "file": "snp_tree_file",
+      "highlightedId": null
+    },
+    "tree-2": {
+      "alignLabels": true,
+      "blockHeaderFontSize": 13,
+      "blockPadding": 0,
+      "blocks": [
+        "status",
+        "partition"
+      ],
+      "blockSize": 14,
+      "branchLengthsDigits": 4,
+      "controls": true,
+      "fontSize": 16,
+      "hideOrphanDataRows": false,
+      "ids": null,
+      "internalLabelsFilterRange": [
+        0,
+        100
+      ],
+      "internalLabelsFontSize": 13,
+      "lasso": false,
+      "nodeSize": 14,
+      "path": null,
+      "roundBranchLengths": true,
+      "scaleLineAlpha": true,
+      "showBlockHeaders": true,
+      "showBlockLabels": false,
+      "showBranchLengths": false,
+      "showEdges": true,
+      "showInternalLabels": false,
+      "showLabels": true,
+      "showLeafLabels": true,
+      "showPiecharts": true,
+      "showShapeBorders": true,
+      "showShapes": true,
+      "styleLeafLabels": false,
+      "styleNodeEdges": false,
+      "subtreeIds": null,
+      "type": "rc",
+      "title": "Gene Presence-Absence Neighbor-Joining Tree",
+      "labelField": "id",
+      "file": "gene_tree_file",
       "highlightedId": null
     }
   },

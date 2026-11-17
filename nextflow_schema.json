@@ -247,6 +247,37 @@
         }
       }
     },
+    "accessory_genome": {
+      "title": "Accessory genome",
+      "type": "object",
+      "description": "",
+      "default": "",
+      "properties": {
+        "accessory": {
+          "type": "boolean",
+          "description": "Annotate the assemblies of each cluster (Bakta) and build a gene presence-absence matrix (Panaroo)",
+          "fa_icon": "fas fa-puzzle-piece"
+        },
+        "ann_overwrite": {
+          "type": "boolean",
+          "description": "Re-annotate samples in this run that already have an annotation in the database",
+          "fa_icon": "fas fa-puzzle-piece"
+        },
+        "bakta_db": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "Path to an existing Bakta database. Default: <db>/bakta/db-<bakta_db_type>, downloaded if missing",
+          "fa_icon": "fas fa-puzzle-piece"
+        },
+        "bakta_db_type": {
+          "type": "string",
+          "default": "light",
+          "enum": ["light", "full"],
+          "description": "Bakta database type to download",
+          "fa_icon": "fas fa-puzzle-piece"
+        }
+      }
+    },
     "institutional_config_options": {
       "title": "Institutional config options",
       "type": "object",
@@ -433,6 +464,9 @@
     },
     {
       "$ref": "#/$defs/phylogenetic_analysis"
+    },
+    {
+      "$ref": "#/$defs/accessory_genome"
     },
     {
       "$ref": "#/$defs/institutional_config_options"

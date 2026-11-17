@@ -12,6 +12,14 @@ Every run now saves its database files to the run directory, whether or not `--p
   - `<taxa>/<cluster>/asm/ref.fa.gz` and `<taxa>/<cluster>/aux/ref.json.gz` - reference and its metadata, for every cluster in the run
   - `<taxa>/<cluster>/asm/<sample>.fa.gz` - sample assemblies as stored in the database, including assemblies supplied in the samplesheet
 
+- Optional accessory genome analysis, turned on with `--accessory true`:
+  - Every assembly in a cluster (the run's samples and the samples already in the database) is annotated with [Bakta](https://github.com/oschwengers/bakta). A sample that already has `<db>/<taxa>/clusters/<cluster>/ann/<sample>.gff.gz` is not annotated again, unless it is in the run and `--ann_overwrite true` is set.
+  - New annotations are saved to `<outdir>/<timestamp>/<taxa>/<cluster>/ann/<sample>.gff.gz` and, with `--push`, to `<db>/<taxa>/clusters/<cluster>/ann/<sample>.gff.gz`.
+  - The Bakta database is taken from `<db>/bakta/db-<bakta_db_type>` (`--bakta_db_type`, default `light`). If it is not there it is downloaded and saved there, with or without `--push`. `--bakta_db` uses a Bakta database from another location instead.
+  - The annotations of each cluster with two or more samples are passed to [Panaroo](https://github.com/gtonkinhill/panaroo) (`--clean-mode strict --remove-invalid-genes`). Its outputs, including `gene_presence_absence.csv` and `gene_presence_absence.Rtab`, are saved to `<outdir>/<timestamp>/<taxa>/<cluster>/panaroo/`. The cluster report uses `gene_presence_absence.Rtab` (see below).
+  - When a cluster has a gene presence-absence matrix, the cluster report (`bigbacter_report_cluster.py` v1.1.0) counts the genes that differ between each pair of samples (present in one, absent in the other) and builds a midpoint-rooted neighbor-joining tree from those counts. It saves `<prefix>_gene-dist-wide.csv` and `<prefix>_gene-dist-long.csv` to `<cluster>/dist/` and `<prefix>_gene-tree.nwk` to `<cluster>/tree/`. The reference is not in these files, as it is not annotated.
+  - In the Microreact report the gene tree is added as a `Gene NJ Tree` tab beside the maximum likelihood tree (tab renamed from `Tree` to `ML Tree`), and a `Gene Differences` matrix replaces the `% Avg Divergence` matrix. The MinHash distance files are still saved. Reports of clusters without a gene presence-absence matrix are unchanged apart from the tab name.
+
 ### `Changed`
 - The `TAXA_FILES` and `CLUSTER_FILES` processes now run on every run. They only write to the database with `--push`. Without `--push`, only the signatures of the run's samples are staged.
 - `config.json` is saved to `<outdir>/<timestamp>/<taxa>/config.json` by any run that finds no existing taxa database, not only by `--push` runs.
