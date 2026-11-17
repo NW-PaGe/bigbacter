@@ -51,19 +51,19 @@
       "size": 284,
       "type": "matrix"
     },
-    "gene_dist_file": {
+    "accessory_dist_file": {
       "blob": "",
       "format": "text/csv",
-      "id": "gene_dist_file",
-      "name": "no_gene_dist_file",
+      "id": "accessory_dist_file",
+      "name": "no_accessory_dist_file",
       "size": 284,
       "type": "matrix"
     },
-    "gene_tree_file": {
+    "accessory_tree_file": {
       "blob": "",
       "format": "text/x-nh",
-      "id": "gene_tree_file",
-      "name": "no_gene_tree_file",
+      "id": "accessory_tree_file",
+      "name": "no_accessory_tree_file",
       "size": 180,
       "type": "tree"
     }
@@ -106,7 +106,7 @@
       "truncateLabels": true,
       "rotateAxisLabels": 90,
       "paneId": "matrix-3",
-      "file": "gene_dist_file"
+      "file": "accessory_dist_file"
     }
   },
   "maps": {},
@@ -205,7 +205,7 @@
                       {
                         "type": "tab",
                         "id": "matrix-3",
-                        "name": "Gene Differences",
+                        "name": "Accessory Differences",
                         "component": "Matrix"
                       }
                     ]
@@ -224,7 +224,7 @@
                       {
                         "type": "tab",
                         "id": "tree-2",
-                        "name": "Gene NJ Tree",
+                        "name": "Accessory NJ Tree",
                         "component": "Tree"
                       }
                     ]
@@ -365,7 +365,7 @@
       "type": "rc",
       "title": "Gene Presence-Absence Neighbor-Joining Tree",
       "labelField": "id",
-      "file": "gene_tree_file",
+      "file": "accessory_tree_file",
       "highlightedId": null
     }
   },

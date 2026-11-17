@@ -90,6 +90,8 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
+__version__ = "1.0.0"
+
 ROARY_FIXED_COLUMNS = [
     "Gene", "Non-unique Gene name", "Annotation", "No. isolates",
     "No. sequences", "Avg sequences per isolate", "Genome Fragment",
@@ -471,6 +473,7 @@ def main():
                    choices=("clustering-id", "locus-tag", "fragment-order"))
     p.add_argument("--i-know-this-is-not-an-order", action="store_true",
                    help="required to permit --order-source fragment-order")
+    p.add_argument("--version", action="version", version=__version__)
     args = p.parse_args()
 
     if not os.path.isdir(args.panaroo_dir):

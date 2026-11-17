@@ -97,15 +97,18 @@ workflow BIGBACTER {
         ACCESSORY GENOME (OPTIONAL)
         - Annotation of every assembly in a cluster (Bakta), re-using annotations in the database
         - Gene presence-absence (Panaroo)
+        - Pairwise accessory distances from gain/loss events (pan-dists)
     =============================================================================================================================
     */
 
-    ch_ann     = Channel.empty()
-    ch_gene_pa = Channel.empty()
+    ch_ann      = Channel.empty()
+    ch_gene_pa  = Channel.empty()
+    ch_acc_dist = Channel.empty()
     if (params.accessory) {
         ACCESSORY(CLASSIFY.out.manifest)
         ch_ann      = ACCESSORY.out.ann_new
         ch_gene_pa  = ACCESSORY.out.rtab
+        ch_acc_dist = ACCESSORY.out.acc_dist
         ch_versions = ch_versions.mix(ACCESSORY.out.versions)
     }
 
@@ -113,7 +116,7 @@ workflow BIGBACTER {
     =============================================================================================================================
         REPORT GENERATION
         - Cluster-level summaries
-        - Gene differences and neighbor-joining tree (with --accessory)
+        - Accessory differences and neighbor-joining tree (with --accessory)
         - Microreact visualizations
     =============================================================================================================================
     */
@@ -124,7 +127,8 @@ workflow BIGBACTER {
         VARIANTS.out.snp_dist,
         VARIANTS.out.snp_tree,
         VARIANTS.out.ref_data,
-        ch_gene_pa
+        ch_gene_pa,
+        ch_acc_dist
     )
     ch_versions = ch_versions.mix(REPORT.out.versions)
 

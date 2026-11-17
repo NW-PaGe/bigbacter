@@ -275,6 +275,20 @@
           "enum": ["light", "full"],
           "description": "Bakta database type to download",
           "fa_icon": "fas fa-puzzle-piece"
+        },
+        "acc_event_window": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 1,
+          "description": "pan-dists N: accessory genes within N genes of one another on a contig join the same gain/loss event",
+          "fa_icon": "fas fa-puzzle-piece"
+        },
+        "acc_event_tolerance": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 0,
+          "description": "pan-dists X: a multi-gene event whose composition differs by X genes or fewer is still counted as shared",
+          "fa_icon": "fas fa-puzzle-piece"
         }
       }
     },

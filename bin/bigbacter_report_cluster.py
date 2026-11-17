@@ -208,6 +208,29 @@ def _gene_distance_matrix(pa: np.ndarray) -> np.ndarray:
     counts = np.diag(shared)
     return np.rint(counts[:, None] + counts[None, :] - 2 * shared).astype(int)
 
+def _load_square_matrix(path: Path) -> Tuple[List[str], np.ndarray]:
+    """Load a square wide-format distance matrix (first column is the sample labels).
+
+    Used for the pan-dists accessory event distances. Returns labels and an
+    integer matrix in the order the labels appear.
+    """
+    delimiter = _get_delimiter(path)
+    with _sniff_open(path) as f:
+        reader = csv.reader(f, delimiter=delimiter)
+        header = next(reader)[1:]
+        labels, rows = [], []
+        for row in reader:
+            if not row:
+                continue
+            labels.append(row[0].strip())
+            rows.append([float(v) if v.strip() not in ('', 'NA') else 0.0 for v in row[1:]])
+    header = [h.strip() for h in header]
+    if labels != header:
+        raise ValueError(f"{path}: row labels and column headers differ")
+    if any(len(r) != len(labels) for r in rows):
+        raise ValueError(f"{path}: rows do not all have {len(labels)} columns")
+    return labels, np.rint(np.array(rows, dtype=float)).astype(int)
+
 def _neighbor_joining(labels: List[str], dist: np.ndarray):
     """Build a neighbor-joining tree (Saitou & Nei 1987) from a distance matrix.
 
@@ -373,6 +396,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
     snp_tree_file       = _find_file(indir, "core.aln.*")
     mh_dist_file        = _find_file(indir, "*.tsv.gz")
     gene_pa_file        = _find_file(indir, "*.Rtab")
+    acc_dist_file       = _find_file(indir, "dist_events_all.tsv")
     ref_meta_file       = next((f for f in (indir / "ref.json", indir / "ref.json.gz") if f.exists()), None)
     microreact_template = indir / "template.microreact"
 
@@ -494,37 +518,65 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
         LOGGER.info("Processed tree with %d tips and partitions; wrote %s", len(labels), snp_tree_out)
             
     # ----------------------------
-    # Gene presence-absence: pairwise gene differences + neighbor-joining tree (optional)
+    # Pairwise accessory differences + neighbor-joining tree (optional)
+    #
+    # Preferred source is pan-dists dist_events_all.tsv: accessory genes lying within
+    # N genes of one another are grouped into gain/loss events, and each pair is scored
+    # by how many events differ (multi-cluster blocks + isolated single genes). A single
+    # plasmid acquisition therefore counts once rather than once per gene it carries.
+    #
+    # Falls back to counting differing genes straight from the Panaroo Rtab when
+    # pan-dists output is not present, so runs without the PAN_DISTS process still work.
     # ----------------------------
-    gene_dist_out = Path(outdir) / f"{args.prefix}_gene-dist-wide{args.suffix}csv"
-    gene_dist_long_out = Path(outdir) / f"{args.prefix}_gene-dist-long{args.suffix}csv"
-    gene_tree_out = Path(outdir) / f"{args.prefix}_gene-tree{args.suffix}nwk"
-    if gene_pa_file:
-        gene_samples, gene_pa = _load_rtab(gene_pa_file)
-        gene_dist = _gene_distance_matrix(gene_pa)
+    acc_dist_out = Path(outdir) / f"{args.prefix}_accessory-dist-wide{args.suffix}csv"
+    acc_dist_long_out = Path(outdir) / f"{args.prefix}_accessory-dist-long{args.suffix}csv"
+    acc_tree_out = Path(outdir) / f"{args.prefix}_accessory-tree{args.suffix}nwk"
 
-        gene_dist_data = {
-            s1: {s2: int(gene_dist[i, j]) for j, s2 in enumerate(gene_samples)}
-            for i, s1 in enumerate(gene_samples)
-        }
-        _dist2csv(gene_dist_data, outfile=gene_dist_out)
-        _dist2csv_long(gene_dist_data, outfile=gene_dist_long_out)
+    acc_samples: List[str] = []
+    acc_dist: Optional[np.ndarray] = None
+    acc_source = None
+
+    if acc_dist_file:
+        try:
+            acc_samples, acc_dist = _load_square_matrix(acc_dist_file)
+            acc_source = "accessory events"
+            LOGGER.info(
+                "Processed accessory event distances (%d samples) from %s",
+                len(acc_samples), acc_dist_file
+            )
+        except Exception as e:
+            LOGGER.warning("Could not read %s (%s); falling back to gene differences", acc_dist_file, e)
+            acc_dist = None
+
+    if acc_dist is None and gene_pa_file:
+        acc_samples, gene_pa = _load_rtab(gene_pa_file)
+        acc_dist = _gene_distance_matrix(gene_pa)
+        acc_source = "gene differences"
         LOGGER.info(
             "Processed gene presence-absence matrix (%d samples, %d genes) from %s",
-            len(gene_samples), gene_pa.shape[1], gene_pa_file
+            len(acc_samples), gene_pa.shape[1], gene_pa_file
         )
 
-        if len(gene_samples) > 1:
+    if acc_dist is not None:
+        acc_dist_data = {
+            s1: {s2: int(acc_dist[i, j]) for j, s2 in enumerate(acc_samples)}
+            for i, s1 in enumerate(acc_samples)
+        }
+        _dist2csv(acc_dist_data, outfile=acc_dist_out)
+        _dist2csv_long(acc_dist_data, outfile=acc_dist_long_out)
+        LOGGER.info("Pairwise accessory differences measured as %s; wrote %s", acc_source, acc_dist_out)
+
+        if len(acc_samples) > 1:
             # sorted so the tree does not depend on the column order of the input
-            order = sorted(range(len(gene_samples)), key=lambda i: gene_samples[i])
-            gene_tree = _neighbor_joining(
-                [gene_samples[i] for i in order],
-                gene_dist[np.ix_(order, order)]
+            order = sorted(range(len(acc_samples)), key=lambda i: acc_samples[i])
+            acc_tree = _neighbor_joining(
+                [acc_samples[i] for i in order],
+                acc_dist[np.ix_(order, order)]
             )
-            _write_newick(_root_at_midpoint(gene_tree), gene_tree_out)
-            LOGGER.info("Built gene presence-absence neighbor-joining tree; wrote %s", gene_tree_out)
+            _write_newick(_root_at_midpoint(acc_tree), acc_tree_out)
+            LOGGER.info("Built accessory neighbor-joining tree; wrote %s", acc_tree_out)
         else:
-            LOGGER.warning("Gene presence-absence tree not built (fewer than two samples)")
+            LOGGER.warning("Accessory tree not built (fewer than two samples)")
 
     # ----------------------------
     # Build final summary and write CSV
@@ -587,14 +639,14 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
             "snp_tree_file": {"pane_id": "tree-1", "file": snp_tree_out},
             "snp_dist_file": {"pane_id": "matrix-1", "file": snp_dist_out},
             "mh_dist_file": {"pane_id": "matrix-2", "file": mh_dist_out},
-            "gene_dist_file": {"pane_id": "matrix-3", "file": gene_dist_out},
-            "gene_tree_file": {"pane_id": "tree-2", "file": gene_tree_out},
+            "accessory_dist_file": {"pane_id": "matrix-3", "file": acc_dist_out},
+            "accessory_tree_file": {"pane_id": "tree-2", "file": acc_tree_out},
         }
 
-        # the gene difference matrix replaces the % Avg Divergence matrix when it is available
-        mr_skip = {"mh_dist_file"} if gene_dist_out.exists() else set()
+        # the accessory difference matrix replaces the % Avg Divergence matrix when it is available
+        mr_skip = {"mh_dist_file"} if acc_dist_out.exists() else set()
         # panes that are removed completely (pane, settings and file entry) when they are not used
-        mr_drop = mr_skip | {"gene_dist_file", "gene_tree_file"}
+        mr_drop = mr_skip | {"accessory_dist_file", "accessory_tree_file"}
 
         mr_json = load_json(microreact_template)
 
@@ -647,7 +699,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
 # -------------------------------
 
 def main() -> None:
-    version = "1.1.0"
+    version = "1.2.0"
     parser = argparse.ArgumentParser(
         description="Summarize BigBacter run outputs.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -658,7 +710,9 @@ Expected input directory structure:
   - dist_wide.csv (SNP distance matrix)
   - core.aln.* (Newick tree file)
   - *.tsv.gz (K-mer distance matrix)
-  - *.Rtab (optional, Panaroo gene presence-absence matrix)
+  - dist_events_all.tsv (optional, pan-dists accessory event distance matrix)
+  - *.Rtab (optional, Panaroo gene presence-absence matrix; used only when
+    dist_events_all.tsv is absent)
   - template.microreact (optional, for Microreact output)
         """
     )

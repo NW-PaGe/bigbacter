@@ -1,12 +1,14 @@
 //
 // Accessory genome analysis (optional, --accessory true)
 // Annotates every assembly in a cluster with Bakta, re-using annotations already in the database,
-// then builds a gene presence-absence matrix for the cluster with Panaroo.
+// then builds a gene presence-absence matrix for the cluster with Panaroo and derives pairwise
+// accessory distances from it with pan-dists.
 //
 
 include { BAKTA_DOWNLOAD } from '../../../modules/local/bakta/download/main'
 include { BAKTA          } from '../../../modules/local/bakta/annotate/main'
 include { PANAROO        } from '../../../modules/local/panaroo/main'
+include { PAN_DISTS      } from '../../../modules/local/pan_dists/main'
 
 workflow ACCESSORY {
 
@@ -123,10 +125,22 @@ workflow ACCESSORY {
     )
     ch_versions = ch_versions.mix(PANAROO.out.versions.first())
 
+    /*
+    =============================================================================================================================
+        ACCESSORY DISTANCES
+        - Accessory genes within N genes of one another are grouped into gain/loss events
+        - Each pair is scored by how many events differ, rather than by how many genes differ
+    =============================================================================================================================
+    */
+
+    PAN_DISTS(PANAROO.out.results)
+    ch_versions = ch_versions.mix(PAN_DISTS.out.versions.first())
+
     emit:
     ann_new  = ch_ann.map { meta, ann_db, ann_new -> [meta, ann_new] } // channel: [ val(meta), [ path(gff) ] ] - saved by PUSH
     results  = PANAROO.out.results                                     // channel: [ val(meta), path(panaroo_files) ]
     rtab     = PANAROO.out.rtab                                        // channel: [ val(meta), path(gene_presence_absence.Rtab) ]
     csv      = PANAROO.out.csv                                         // channel: [ val(meta), path(gene_presence_absence.csv) ]
+    acc_dist = PAN_DISTS.out.dist_events_all                           // channel: [ val(meta), path(dist_events_all.tsv) ]
     versions = ch_versions                                             // channel: [ path(versions.yml) ]
 }
