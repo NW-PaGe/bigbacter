@@ -288,7 +288,8 @@
       "blockPadding": 0,
       "blocks": [
         "status",
-        "partition"
+        "partition",
+        "combined_partition"
       ],
       "blockSize": 14,
       "branchLengthsDigits": 4,
@@ -331,7 +332,8 @@
       "blockPadding": 0,
       "blocks": [
         "status",
-        "partition"
+        "accessory_partition",
+        "combined_partition"
       ],
       "blockSize": 14,
       "branchLengthsDigits": 4,

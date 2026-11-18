@@ -244,6 +244,13 @@
           "default": 100,
           "description": "Nucleotide threshold for grouping samples into tree partitions",
           "fa_icon": "fas fa-chart-pie"
+        },
+        "acc_partition_distance": {
+          "type": "integer",
+          "default": 2,
+          "minimum": 0,
+          "description": "Differing-event threshold for grouping samples into accessory partitions. Provisional default; calibrate per taxon before relying on it",
+          "fa_icon": "fas fa-chart-pie"
         }
       }
     },

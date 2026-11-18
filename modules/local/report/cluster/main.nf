@@ -24,6 +24,7 @@ process CLUSTER {
         --strong-link ${params.strong_link_threshold} \\
         --inter-link ${params.inter_link_threshold} \\
         --partition-distance ${params.partition_distance} \\
+        --acc-partition-distance ${params.acc_partition_distance} \\
         ${ meta.recomb_masked ? "--recomb-masked" : '' } \\
         input/
 

@@ -24,7 +24,9 @@ LOGGER = logging_config()
 
 COL_ORDER = [
     'id', 'run', 'status', 'included', 
-    'taxa', 'cluster', 'partition', 'strong_links', 
+    'taxa', 'cluster', 'partition',
+    'accessory_partition', 'combined_partition',
+    'strong_links',
     'inter_links', 'genome_fraction', 'core_fraction', 
     'length', 'masked', 'missing', 'mixed', 'variants', 
     'recomb_masked'
@@ -141,7 +143,12 @@ def _patristic_distance_matrix(tree) -> Tuple[List[str], np.ndarray]:
             M[i, j] = M[j, i] = d
     return labels, M
 
-def _partition_tree(D: np.ndarray, eps: float, min_samples: int = 1) -> List[int]:
+def _partition_distances(D: np.ndarray, eps: float, min_samples: int = 1) -> List[int]:
+    """Single-linkage-style grouping of a precomputed distance matrix via DBSCAN.
+
+    Used for both the core (SNP patristic) and accessory (event count) matrices.
+    eps is in the units of D, so the two callers pass different thresholds.
+    """
     db = DBSCAN(eps=eps, min_samples=min_samples, metric="precomputed")
     y = db.fit_predict(D)
 
@@ -512,7 +519,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
 
         labels, dist = _patristic_distance_matrix(tree)
 
-        parts = _partition_tree(dist, eps=args.partition_distance)
+        parts = _partition_distances(dist, eps=args.partition_distance)
         _extend_dict(out, {l: {'partition': p} for l, p in zip(labels, parts)})
 
         LOGGER.info("Processed tree with %d tips and partitions; wrote %s", len(labels), snp_tree_out)
@@ -566,6 +573,25 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
         _dist2csv_long(acc_dist_data, outfile=acc_dist_long_out)
         LOGGER.info("Pairwise accessory differences measured as %s; wrote %s", acc_source, acc_dist_out)
 
+        # Partition on the event distances themselves rather than on patristic
+        # distances from the NJ tree: the matrix is the primary object here, so
+        # going through a tree reconstruction would only add distortion.
+        if acc_source == "gene differences":
+            LOGGER.warning(
+                "Accessory partitions are being computed from gene differences, not "
+                "events; --acc-partition-distance %s is in event units and is very "
+                "likely wrong for this input",
+                args.acc_partition_distance
+            )
+        acc_parts = _partition_distances(
+            acc_dist.astype(float), eps=args.acc_partition_distance
+        )
+        _extend_dict(out, {l: {'accessory_partition': p} for l, p in zip(acc_samples, acc_parts)})
+        LOGGER.info(
+            "Assigned %d accessory partitions across %d samples (threshold %s %s)",
+            len(set(acc_parts)), len(acc_samples), args.acc_partition_distance, acc_source
+        )
+
         if len(acc_samples) > 1:
             # sorted so the tree does not depend on the column order of the input
             order = sorted(range(len(acc_samples)), key=lambda i: acc_samples[i])
@@ -577,6 +603,38 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
             LOGGER.info("Built accessory neighbor-joining tree; wrote %s", acc_tree_out)
         else:
             LOGGER.warning("Accessory tree not built (fewer than two samples)")
+
+    # ----------------------------
+    # Combined partitions
+    #
+    # Two samples share a combined partition only if they share BOTH their core
+    # partition and their accessory partition, so this is the intersection of the
+    # two groupings: every combined partition is a subset of a core partition and
+    # of an accessory partition. Samples missing either input (the reference, which
+    # is not annotated, or any sample absent from the accessory matrix) are left
+    # blank rather than given a singleton, which would imply a real distinction.
+    # ----------------------------
+    combined_src = {
+        sample: (fields['partition'], fields['accessory_partition'])
+        for sample, fields in out.items()
+        if fields.get('partition') is not None
+        and fields.get('accessory_partition') is not None
+    }
+    if combined_src:
+        # sorted so numbering does not depend on dict insertion order
+        labels = {key: i + 1 for i, key in enumerate(sorted(set(combined_src.values())))}
+        _extend_dict(out, {
+            sample: {'combined_partition': labels[key]}
+            for sample, key in combined_src.items()
+        })
+        skipped = len(out) - len(combined_src)
+        LOGGER.info(
+            "Assigned %d combined partitions across %d samples%s",
+            len(labels), len(combined_src),
+            f" ({skipped} left blank, missing a core or accessory partition)" if skipped else ""
+        )
+    else:
+        LOGGER.info("Combined partitions not assigned (no sample has both a core and an accessory partition)")
 
     # ----------------------------
     # Build final summary and write CSV
@@ -699,7 +757,7 @@ def process_run(indir: Path, args: argparse.Namespace) -> None:
 # -------------------------------
 
 def main() -> None:
-    version = "1.2.0"
+    version = "1.3.0"
     parser = argparse.ArgumentParser(
         description="Summarize BigBacter run outputs.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -721,7 +779,8 @@ Expected input directory structure:
     parser.add_argument("--taxa", type=str, required=True, help="Taxonomy/species")
     parser.add_argument("--cluster", type=str, required=True, help="Cluster identifier")
     parser.add_argument("--recomb-masked", action="store_true", help="Recombination masking was performed")
-    parser.add_argument("--partition-distance", default=100.0, type=float, help="Distance threshold for tree partitioning")
+    parser.add_argument("--partition-distance", default=100.0, type=float, help="Distance threshold for core (SNP) tree partitioning, in nucleotides")
+    parser.add_argument("--acc-partition-distance", default=2.0, type=float, help="Distance threshold for accessory partitioning, in differing events")
     parser.add_argument("--strong-link", default=10.0, type=float, help="SNP distance threshold for strong links")
     parser.add_argument("--inter-link", default=50.0, type=float, help="SNP distance threshold for intermediate links")
     parser.add_argument("--outdir", type=str, default=".", help="Output directory")
