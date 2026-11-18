@@ -43,8 +43,6 @@ RUN python3 -m pip install \
     sourmash \
     screed \
     numpy \
-    pandas \
-    networkx \
     biopython \
     pathlib2 \
     scikit-learn \
@@ -61,13 +59,13 @@ RUN chown -R biouser:biouser /app
 USER biouser
 
 # Sanity checks (these were in history; optional but preserved)
-RUN python3 -c "import sourmash, screed, numpy, pandas, networkx, Bio.SeqIO, gzip, pathlib, plotly; print('Python packages installed successfully (incl. Plotly)')"
+RUN python3 -c "import sourmash, screed, numpy, Bio.SeqIO, gzip, pathlib, plotly; print('Python packages installed successfully (incl. Plotly)')"
 RUN python3 -c "import kaleido; print('Kaleido installed for static Plotly export')"
 RUN which zip && which unzip && which gzip && which pigz && which tabix && which bgzip && echo "Linux utilities installed successfully"
 
 # Labels from the top of history
 LABEL maintainer="Jared Johnson"
 LABEL description="Base container for BigBacter"
-LABEL version="2.1"
+LABEL version="2.0"
 
 CMD ["/bin/bash"]

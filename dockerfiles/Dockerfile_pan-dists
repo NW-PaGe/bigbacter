@@ -1,0 +1,36 @@
+FROM python:3.12-slim
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Python tooling + packages
+# pan-dists.py needs only these three: pandas and networkx are not in the
+# BigBacter base container, and networkx alone is not enough.
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+RUN python3 -m pip install --no-cache-dir \
+    numpy \
+    pandas \
+    networkx
+
+# Create user, set ownership, drop privileges
+RUN groupadd -r biouser && useradd -r -g biouser -d /home/biouser -s /bin/bash biouser && \
+    mkdir -p /home/biouser && \
+    chown -R biouser:biouser /home/biouser
+
+RUN chown -R biouser:biouser /app
+USER biouser
+
+# Sanity check
+RUN python3 -c "import numpy, pandas, networkx; print('pan-dists dependencies installed successfully')"
+
+LABEL maintainer="Jared Johnson"
+LABEL description="Container for pan-dists.py - pangenome accessory event distances"
+LABEL version="1.0.0"
+
+CMD ["/bin/bash"]
