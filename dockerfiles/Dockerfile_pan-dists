@@ -8,6 +8,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /app
 
+# System dependencies
+# procps supplies ps, which Nextflow calls to collect per-task resource metrics.
+# The python slim images strip it, unlike the ubuntu base used by Dockerfile_base.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
 # Python tooling + packages
 # pan-dists.py needs only these three: pandas and networkx are not in the
 # BigBacter base container, and networkx alone is not enough.
@@ -26,8 +33,9 @@ RUN groupadd -r biouser && useradd -r -g biouser -d /home/biouser -s /bin/bash b
 RUN chown -R biouser:biouser /app
 USER biouser
 
-# Sanity check
+# Sanity checks
 RUN python3 -c "import numpy, pandas, networkx; print('pan-dists dependencies installed successfully')"
+RUN which ps && echo "procps installed successfully (required by Nextflow)"
 
 LABEL maintainer="Jared Johnson"
 LABEL description="Container for pan-dists.py - pangenome accessory event distances"
